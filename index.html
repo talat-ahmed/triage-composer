@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Builds the message to the admin team for a Klinik triage case in a few clicks: what, who and by when, within the character limit, in line with the 2026/27 GP contract and GMC delegation guidance.">
+<meta name="theme-color" content="#0B6E78">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B6E78'/%3E%3Cpath d='M18 20h28M18 32h28M18 44h16' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>Klinik Triage Composer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#F2F5F5; --surface:#FFFFFF; --surface-2:#E9EFEF; --surface-3:#F7FAFA;
+    --text:#15262B; --text-2:#5A6C71; --line:#D3DDDE; --line-2:#BFCBCD;
+    --accent:#0B6E78; --accent-ink:#FFFFFF; --accent-soft:#D9EEF0; --accent-line:#8FC7CD;
+    --crit:#B7372A; --crit-soft:#F6E0DC; --warn:#A86A08; --warn-soft:#F7E9CF; --ok:#2F7A57; --ok-soft:#DCEFE4;
+    --shadow:0 1px 2px rgba(21,38,43,.06), 0 8px 24px rgba(21,38,43,.08);
+    --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+    --body:"IBM Plex Sans","Helvetica Neue",Arial,system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1719; --surface:#172124; --surface-2:#1F2C30; --surface-3:#131C1F;
+      --text:#E4ECED; --text-2:#98A9AE; --line:#2B3B40; --line-2:#3A4C52;
+      --accent:#46B9C2; --accent-ink:#062A2E; --accent-soft:#163A3E; --accent-line:#2E7E86;
+      --crit:#E8776A; --crit-soft:#3B1F1B; --warn:#E0A64A; --warn-soft:#3A2C13; --ok:#6CC29A; --ok-soft:#173327;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1719; --surface:#172124; --surface-2:#1F2C30; --surface-3:#131C1F;
+    --text:#E4ECED; --text-2:#98A9AE; --line:#2B3B40; --line-2:#3A4C52;
+    --accent:#46B9C2; --accent-ink:#062A2E; --accent-soft:#163A3E; --accent-line:#2E7E86;
+    --crit:#E8776A; --crit-soft:#3B1F1B; --warn:#E0A64A; --warn-soft:#3A2C13; --ok:#6CC29A; --ok-soft:#173327;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  a{color:var(--accent)}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 24px 120px}
+
+  /* Header */
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:22px}
+  h1{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.01em;line-height:1.1;margin:0 0 6px;text-wrap:balance}
+  .sub{margin:0;color:var(--text-2);max-width:60ch}
+  .signer{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px 8px 14px}
+  .signer label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600;white-space:nowrap}
+  .signer input{width:150px;border:1px solid transparent;border-bottom:1px solid var(--line-2);background:transparent;padding:4px 2px;font-weight:500}
+  .signer input:focus{outline:none;border-bottom-color:var(--accent)}
+  .signer.needs input{border-bottom-color:var(--warn)}
+
+  /* Workbench */
+  .work{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr);gap:28px;align-items:start}
+  .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);font-weight:600;margin:0 0 10px}
+  .block{margin-bottom:22px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;font-size:14px;line-height:1.3;transition:background .12s,border-color .12s}
+  .chip:hover{border-color:var(--line-2);background:var(--surface-3)}
+  .chip.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:500}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--line-2);flex:none}
+  .chip.t-crit .dot{background:var(--crit)} .chip.t-warn .dot{background:var(--warn)} .chip.t-ok .dot{background:var(--ok)}
+  .chip.t-crit.on{background:var(--crit-soft);border-color:var(--crit);color:var(--crit)}
+  .chip.t-warn.on{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+  .chip.t-ok.on{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+  .quick .chip{font-size:13px;padding:5px 11px}
+
+  .seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:4px;gap:4px}
+  .seg button{border:0;background:transparent;border-radius:7px;padding:8px 12px;font-weight:500;color:var(--text-2)}
+  .seg button:hover{color:var(--text)}
+  .seg button.on{background:var(--accent);color:var(--accent-ink)}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 18px 8px}
+  .panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0 8px;border-bottom:1px solid var(--line)}
+  .panel-head h2{font-family:var(--display);font-size:18px;font-weight:600;margin:0}
+  .rtype{font-size:12px;color:var(--text-2)}
+  .rtype b{color:var(--text);font-weight:500}
+  .row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .rl{font-size:13px;font-weight:600;color:var(--text-2);padding-top:7px}
+  .rh{display:block;font-weight:400;font-size:12px;margin-top:2px}
+  .rc{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .togs{display:flex;flex-wrap:wrap;gap:6px 16px}
+  .tog{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;padding:5px 2px;font-size:14px;color:var(--text-2);border-radius:6px}
+  .tog.on{color:var(--text)}
+  .sw{width:28px;height:16px;border-radius:999px;background:var(--line-2);position:relative;flex:none;transition:background .12s}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--surface);transition:transform .12s}
+  .tog.on .sw{background:var(--accent)}
+  .tog.on .sw::after{transform:translateX(12px)}
+  .txt{width:100%;max-width:520px;border:1px solid var(--line);background:var(--surface-3);border-radius:8px;padding:7px 10px}
+  .txt:focus{outline:none;border-color:var(--accent)}
+  .sublab{font-size:12px;color:var(--text-2)}
+
+  /* Preview */
+  .preview{position:sticky;top:16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .card-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 10px}
+  .card-head .eyebrow{margin:0}
+  .count{font-family:var(--mono);font-size:13px;color:var(--text-2);font-variant-numeric:tabular-nums}
+  .count.warn{color:var(--warn)} .count.over{color:var(--crit);font-weight:500}
+  .meter{height:4px;background:var(--surface-2);margin:0 18px;border-radius:2px;overflow:hidden}
+  .meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+  .meter i.warn{background:var(--warn)} .meter i.over{background:var(--crit)}
+  textarea#msg{display:block;width:100%;min-height:230px;border:0;background:transparent;resize:vertical;padding:14px 18px;line-height:1.55;font-size:15px}
+  textarea#msg:focus{outline:none;background:var(--surface-3)}
+  .note{padding:0 18px 10px;font-size:13px;color:var(--text-2);min-height:14px}
+  .note.over{color:var(--crit)}
+  .actions{display:flex;gap:8px;padding:0 18px 16px}
+  .primary{flex:1;border:0;background:var(--accent);color:var(--accent-ink);border-radius:9px;padding:12px 16px;font-weight:600;font-size:15px;transition:background .12s}
+  .primary:hover{filter:brightness(1.06)}
+  .primary.done{background:var(--ok);color:#fff}
+  .ghost{border:1px solid var(--line);background:transparent;border-radius:9px;padding:10px 14px;color:var(--text-2)}
+  .hint{margin:0;padding:0 18px 14px;font-size:12px;color:var(--text-2)}
+  kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface-3)}
+
+  /* Foot */
+  .foot{margin-top:36px;display:grid;gap:14px}
+  details{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+  summary{cursor:pointer;padding:14px 18px;font-family:var(--display);font-weight:600;font-size:17px;list-style:none;display:flex;align-items:center;gap:10px}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--text-2);border-bottom:2px solid var(--text-2);transform:rotate(-45deg);transition:transform .15s;flex:none;margin-left:2px}
+  details[open] summary::before{transform:rotate(45deg)}
+  .dbody{padding:0 18px 20px;max-width:72ch}
+  .dbody p{margin:0 0 12px}
+  .dbody h3{font-family:var(--display);font-size:15px;margin:18px 0 6px}
+  .map{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 14px}
+  .map th,.map td{text-align:left;padding:7px 10px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  .map th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600}
+  .srcs{font-size:13px;color:var(--text-2);line-height:1.6}
+  .setgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px 22px;padding:4px 18px 20px}
+  .set label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+  .set input[type=text],.set input[type=number]{width:100%;border:1px solid var(--line);background:var(--surface-3);border-radius:8px;padding:8px 10px}
+  .set input:focus{outline:none;border-color:var(--accent)}
+  .set .help{font-size:12px;color:var(--text-2);margin-top:4px}
+  .set.wide{grid-column:1/-1}
+
+  /* Mobile */
+  .mobilebar{display:none}
+  @media (max-width:900px){
+    .wrap{padding:20px 16px 110px}
+    .work{grid-template-columns:1fr}
+    .preview{position:static}
+    .row{grid-template-columns:1fr;gap:6px}
+    .rl{padding-top:0}
+    .mobilebar{display:flex;position:fixed;left:0;right:0;bottom:0;gap:12px;align-items:center;padding:10px 16px;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.08)}
+    .mobilebar .count{flex:none}
+    .mobilebar .primary{flex:1}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Klinik Triage Composer</h1>
+      <p class="sub">Pick an outcome, adjust anything that differs, copy. Every message states what, who and by when, and never sends the patient away to "call back tomorrow".</p>
+    </div>
+    <div class="signer" id="signer">
+      <label for="name">Signed as</label>
+      <input id="name" type="text" placeholder="Your name" autocomplete="off">
+    </div>
+  </header>
+
+  <main class="work">
+    <section class="controls">
+      <div class="block quick">
+        <h2 class="eyebrow">Quick starts</h2>
+        <div class="chips" id="presets"></div>
+      </div>
+      <div class="block">
+        <h2 class="eyebrow">Outcome</h2>
+        <div class="seg" id="outcomes"></div>
+      </div>
+      <div class="panel" id="options"></div>
+    </section>
+
+    <aside class="preview">
+      <div class="card">
+        <div class="card-head">
+          <span class="eyebrow">Message to team</span>
+          <span class="count" id="count">0 / 500</span>
+        </div>
+        <div class="meter"><i id="meter"></i></div>
+        <textarea id="msg" spellcheck="false" aria-label="Generated message"></textarea>
+        <div class="note" id="note"></div>
+        <div class="actions">
+          <button class="primary" id="copy" type="button">Copy message</button>
+          <button class="ghost" id="regen" type="button" hidden>Regenerate</button>
+        </div>
+        <p class="hint">Edit the text freely before copying. <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> copies.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="foot">
+    <details id="why">
+      <summary>Why the wording is like this</summary>
+      <div class="dbody">
+        <p>Each message is built to satisfy two sets of rules at once: the GP contract's access requirements and the GMC's guidance on delegating to colleagues.</p>
+
+        <h3>The GP contract, 2026/27</h3>
+        <p>From April 2026 practices must deal with requests they identify as clinically urgent on the same day, give non-urgent requests an appropriate response by the end of the next core-hours period, keep online consultation open throughout core hours without capping requests, and must not ask patients to call back, or make contact, on another day. An "appropriate response" is one of four things: an appointment (in person, telephone or video) at an appropriate and reasonable time; advice or care by another method; directing the patient to an appropriate service, including one they can access themselves; or a request for further information. Every outcome in the composer maps to one of the four, and when a patient cannot take the slot offered the fallback is always something the practice does or the patient can do now: self-book on the NHS App, or the team books the next suitable slot. "Try again another day" never appears.</p>
+        <table class="map">
+          <thead><tr><th>Outcome</th><th>Contract response type</th></tr></thead>
+          <tbody>
+            <tr><td>Book appointment · My triage slots</td><td>Appointment at an appropriate and reasonable time; same day when clinically urgent</td></tr>
+            <tr><td>Contact &amp; check</td><td>Request for further information, with the next step already decided</td></tr>
+            <tr><td>Signpost</td><td>Direct the patient to an appropriate service they can access, with a route back if it does not help</td></tr>
+            <tr><td>Admin request · Dealt with</td><td>Advice or care provided by another method</td></tr>
+          </tbody>
+        </table>
+
+        <h3>GMC guidance on delegation</h3>
+        <p>A message to the team is a delegation. The GMC's <em>Delegation and referral</em> guidance asks for clear instructions covering what needs to be done, by whom and by when; the delegating clinician remains accountable for the decision and for the patient's overall management, and must record the work in line with <em>Good medical practice</em> paragraphs 69 to 71. So every message names the action, the clinician type (and the person, where it matters) and the timeframe, and the same-day path tells the team to escalate straight back to you if there is no slot. The optional safety-net line gives the team a consistent form of words to relay, so the patient always knows what to do if things change before they are seen.</p>
+
+        <h3>Deliberate wording choices</h3>
+        <p>Fallbacks use self-book or next-slot routes, never "resubmit another day". A timeframe is stated in every booking, with the contract's three tiers (today, next soonest, when next available) plus a specific clinic day. Same-day bookings carry an escalation line. A safety-net line the team relays is available on clinical outcomes and on by default. NHS App education asks the team to confirm a slot is secured before the call ends. Optional "record on EMIS" and "no text message" lines are available everywhere they make sense. Nothing you type is sent anywhere: the page runs entirely in your browser and only your own name and settings are remembered, on your device.</p>
+
+        <h3>Klinik's character limit</h3>
+        <p>Set your Klinik message limit in Settings (500 by default). When a message runs over, the composer swaps in shorter phrasing sentence by sentence, least important first, and warns you if it still does not fit.</p>
+
+        <p class="srcs">Sources: <a href="https://www.england.nhs.uk/long-read/changes-to-the-gp-contract-in-2026-27/" target="_blank" rel="noopener">NHS England, Changes to the GP Contract in 2026/27</a> · <a href="https://www.england.nhs.uk/long-read/supplementary-information-to-support-changes-to-the-2026-27-gp-contract/" target="_blank" rel="noopener">NHS England, Supplementary information for the 2026/27 GP contract</a> · <a href="https://www.bma.org.uk/advice-and-support/gp-practices/gp-service-provision/gp-access-meeting-the-reasonable-needs-of-patients" target="_blank" rel="noopener">BMA, GP access: meeting the reasonable needs of patients</a> · <a href="https://www.gmc-uk.org/professional-standards/the-professional-standards/delegation-and-referral/delegation-and-referral" target="_blank" rel="noopener">GMC, Delegation and referral</a></p>
+      </div>
+    </details>
+
+    <details id="settings">
+      <summary>Settings: Klinik limit, clinician roster, defaults</summary>
+      <div class="setgrid">
+        <div class="set"><label for="s-limit">Klinik character limit</label><input id="s-limit" type="number" min="100" max="5000" step="10" data-s="limit"><div class="help">Messages shorten automatically to fit.</div></div>
+        <div class="set"><label for="s-myDay">Your usual clinic day</label><input id="s-myDay" type="text" data-s="myDay" placeholder="Thursday"><div class="help">Used by "See me" bookings.</div></div>
+        <div class="set"><label for="s-gps">Doctors / ANPs, comma-separated (optional)</label><input id="s-gps" type="text" data-s="gps" placeholder="e.g. Dr Patel, Sam (ANP)"><div class="help">Names appear as quick picks; anyone can still type a name, e.g. a locum.</div></div>
+        <div class="set"><label for="s-pharms">Practice pharmacists (optional)</label><input id="s-pharms" type="text" data-s="pharms" placeholder="e.g. Priya, Tom"></div>
+        <div class="set"><label for="s-physios">First contact physiotherapists (optional)</label><input id="s-physios" type="text" data-s="physios" placeholder="e.g. Alex"></div>
+        <div class="set"><label for="s-nurses">Practice nurses (optional)</label><input id="s-nurses" type="text" data-s="nurses" placeholder="e.g. Jo, Chris"></div>
+        <div class="set wide"><label for="s-slot">Your GP-to-book slot label on EMIS</label><input id="s-slot" type="text" data-s="slot" placeholder="Tel Triage KLINIK DR TO BOOK ONLY"></div>
+        <div class="set"><label>Defaults</label><div class="togs" id="s-togs"></div><div class="help">Saved on this device only; each team member sets their own name and defaults.</div></div>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="mobilebar">
+  <span class="count" id="count2">0 / 500</span>
+  <button class="primary" id="copy2" type="button">Copy message</button>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const $ = (s, el=document) => el.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  /* ---------- settings (per device) ---------- */
+  const DEFAULT_S = { name:'', limit:500, safetyDefault:true, breaks:true, gps:'', pharms:'', physios:'', nurses:'', slot:'Tel Triage KLINIK DR TO BOOK ONLY', myDay:'Thursday' };
+  let S = Object.assign({}, DEFAULT_S);
+  try { const raw = localStorage.getItem('ktc.settings'); if (raw) S = Object.assign({}, DEFAULT_S, JSON.parse(raw)); } catch(e){}
+  function saveS(){ try { localStorage.setItem('ktc.settings', JSON.stringify(S)); } catch(e){} }
+  const names = csv => String(csv||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const orList = a => a.length<=1 ? a.join('') : a.slice(0,-1).join(', ') + ' or ' + a[a.length-1];
+  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+  const dayOk = d => DAYS.includes(d) ? d : 'Thursday';
+
+  /* ---------- state ---------- */
+  const OUTCOMES = [
+    {id:'book', label:'Book appointment', rtype:'Appointment'},
+    {id:'mine', label:'My triage slots', rtype:'Appointment (with me)'},
+    {id:'contact', label:'Contact & check', rtype:'Request further information'},
+    {id:'signpost', label:'Signpost', rtype:'Direct to an appropriate service'},
+    {id:'admin', label:'Admin request', rtype:'Care by another method'},
+    {id:'done', label:'Dealt with', rtype:'Care by another method'},
+  ];
+  function fresh(outcome){
+    return {
+      outcome,
+      who:'anygp', named:'', namedCustom:'', person:'', personCustom:'', reason:'none', reasonCustom:'',
+      modality:'f2f', urgency:'soonest', day:dayOk(S.myDay), hub:false,
+      purpose:'none', purposeCustom:'',
+      fbSelf:true, fbNext:false, fbResubmit:false,
+      safety: outcome==='book' || outcome==='contact' || outcome==='signpost' ? !!S.safetyDefault : false,
+      nosms: outcome==='mine', record:false,
+      list:'PM', upload:true,
+      check:'still', checkCustom:'', then:'f2f', settled:true,
+      service:'pharmacyfirst', serviceCustom:'', comeback:true, confirm:true,
+      adminType:'letter', adminCustom:'', adminList:false,
+      addList:true, complete:true, patientMsg:''
+    };
+  }
+  let st = fresh('book');
+
+  const PRESETS = [
+    {l:'F2F ASAP · any GP/ANP', o:'book', s:{who:'anygp', modality:'f2f', urgency:'soonest'}},
+    {l:'F2F ASAP · hub too', o:'book', s:{who:'anygp', modality:'f2f', urgency:'soonest', hub:true}},
+    {l:'Same day · urgent', o:'book', s:{who:'anygp', modality:'f2f', urgency:'today'}},
+    {l:'Tel · any GP · next available', o:'book', s:{who:'anygp', modality:'tel', urgency:'routine'}},
+    {l:'Pharmacist · tel', o:'book', s:{who:'pharm', modality:'tel', urgency:'routine'}},
+    {l:'Physio (FCP) · first available', o:'book', s:{who:'fcp', modality:'either', urgency:'routine'}},
+    {l:'See me · clinic day · skin', o:'book', s:{who:'me', modality:'f2f', urgency:'day', reason:'skin'}},
+    {l:'My triage slots (PM)', o:'mine', s:{list:'PM'}},
+    {l:'Contact & re-check', o:'contact', s:{}},
+    {l:'Pharmacy First', o:'signpost', s:{service:'pharmacyfirst'}},
+    {l:'MECS (eye)', o:'signpost', s:{service:'mecs'}},
+    {l:'NHS App self-book', o:'signpost', s:{service:'nhsapp', safety:false}},
+    {l:'Bloods · hub', o:'book', s:{who:'phleb', urgency:'routine', hub:true, safety:false}},
+    {l:'Smear · nurse', o:'book', s:{who:'nurse', modality:'f2f', urgency:'routine', purpose:'smear', safety:false}},
+    {l:'Travel clinic', o:'book', s:{who:'nurse', modality:'f2f', urgency:'routine', purpose:'travel', safety:false}},
+    {l:'Private letter', o:'admin', s:{adminType:'letter'}},
+    {l:'Dealt with · complete', o:'done', s:{}},
+  ];
+
+  /* ---------- phrase tables ---------- */
+  const MOD = {
+    f2f:{l:'a face-to-face appointment', s:'a face-to-face appt'},
+    tel:{l:'a telephone consultation', s:'a telephone consult'},
+    either:{l:'the next available slot (face-to-face or telephone)', s:'the next available slot (F2F or phone)'}
+  };
+  const SAFETY = {l:'Please advise the patient: if things get worse before they are seen, contact us again the same day or call 111 (999 in an emergency).', s:'Safety-net: if worse before seen, contact us same day or call 111 (999 if emergency).'};
+  const SAFETY_SP = {l:'If symptoms get worse, they should contact us again the same day or call 111 (999 in an emergency).', s:'If worse: contact us same day or call 111 (999 if emergency).'};
+  const NOSMS = {l:'Please do not send a text message to the patient.', s:'No text to patient please.'};
+  const RECORD = {l:'Please record the outcome on EMIS.', s:'Record on EMIS.'};
+  const REASONS = {
+    skin:{me:'I have extra training in skin problems', them:'they have extra training in skin problems'},
+    continuity:{me:'I know the background, which keeps continuity', them:'they know the background, which keeps continuity'},
+    reviewing:{me:'I am already reviewing this', them:'they are already reviewing this'}
+  };
+  const tidy = s => { s = String(s||'').trim(); if(!s) return ''; return /[.!?]$/.test(s) ? s : s + '.'; };
+  const namedName = () => (st.named || st.namedCustom || '').trim();
+  const personName = () => (st.person || st.personCustom || '').trim();
+
+  function whoPhrase(){
+    const p = personName();
+    const withRole = role => p.includes('(') ? `${p}, ${role}` : `${p} (${role})`;
+    switch(st.who){
+      case 'anygp': return {l:'any doctor/ANP', s:'any doctor/ANP'};
+      case 'me': return {l:'me', s:'me'};
+      case 'named': { const n = namedName() || 'the named clinician'; return {l:n, s:n}; }
+      case 'pharm': { if(p) return {l:withRole('practice pharmacist'), s:p}; const n = orList(names(S.pharms)); return {l: n ? `a practice pharmacist (${n})` : 'a practice pharmacist', s:'a practice pharmacist'}; }
+      case 'fcp': { if(p) return {l:withRole('first contact physiotherapist'), s:p}; return {l:'the first contact physiotherapist', s:'the FCP'}; }
+      case 'nurse': { if(p) return {l:withRole('practice nurse'), s:p}; const n = names(S.nurses).join('/'); return {l: n ? `the practice nurse (${n})` : 'the practice nurse', s:'the practice nurse'}; }
+    }
+    return {l:'', s:''};
+  }
+  function purposePhrase(){
+    if(st.who!=='nurse') return '';
+    if(st.purpose==='smear') return ' for a smear test';
+    if(st.purpose==='other' && st.purposeCustom.trim()) return ' for ' + st.purposeCustom.trim();
+    return '';
+  }
+  function reasonSentence(){
+    const target = st.who==='me' ? 'me' : (namedName() || 'them');
+    if(st.reason==='custom') return st.reasonCustom.trim() ? `Please explain it is best to see ${target} - ${tidy(st.reasonCustom)}` : '';
+    const r = REASONS[st.reason]; if(!r) return '';
+    return `Please explain it is best to see ${target} as ${st.who==='me' ? r.me : r.them}.`;
+  }
+
+  /* ---------- fragment builders ---------- */
+  function frags(){
+    const f = [];
+    const add = (l, s, p=5) => { if(l) f.push({l, s: s || l, p}); };
+    const day = dayOk(st.day);
+    if(st.outcome==='book'){
+      const who = whoPhrase(), mod = MOD[st.modality], purpose = purposePhrase();
+      if(st.who==='phleb'){
+        const tail = st.urgency==='today' ? ' today (urgent)' : st.urgency==='soonest' ? ' as soon as possible' : st.urgency==='day' ? ` on ${day}` : '';
+        add(`Please call the patient to help them book a blood test (phlebotomy) appointment${tail}.`, `Please call the patient to book a blood test (phlebotomy)${tail}.`, 5);
+        if(st.hub) add('Please use the hub for this if available.', 'Use the hub if available.', 3);
+      } else if(st.who==='nurse' && st.purpose==='travel'){
+        const tail = {today:'today', soonest:'as soon as possible', routine:'when next available', day:`on ${day}`}[st.urgency];
+        add(`Please book the patient into the travel clinic ${tail}.`, null, 5);
+        if(st.urgency==='day') add(`If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
+        if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
+      } else {
+        switch(st.urgency){
+          case 'today':
+            add(`Please book ${mod.l}${purpose} with ${who.l} today - clinically urgent, same day please.`, `Please book ${mod.s}${purpose} with ${who.s} today - clinically urgent.`, 5);
+            add('If nothing is available today, or they cannot attend today, please message me straight away.', 'No slot today or cannot attend: message me straight away.', 4);
+            break;
+          case 'soonest':
+            add(`Please book ${mod.l}${purpose} ASAP with ${who.l} - next soonest slot please, so we do not waste access.`, `Please book ${mod.s}${purpose} ASAP with ${who.s} - next soonest slot please.`, 5);
+            break;
+          case 'routine':
+            add(`Please book ${mod.l}${purpose} with ${who.l} when next available.`, `Please book ${mod.s}${purpose} with ${who.s} when next available.`, 5);
+            break;
+          case 'day':
+            add(`Please book ${mod.l}${purpose} with ${who.l} on ${day} (earliest appointment).`, `Please book ${mod.s}${purpose} with ${who.s} on ${day}.`, 5);
+            add(`If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
+            break;
+        }
+        if((st.who==='me' || st.who==='named') && st.reason!=='none') add(reasonSentence(), null, 3);
+        if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
+        if(st.urgency!=='today'){
+          if(st.fbSelf) add(`If they cannot attend the slot offered, please encourage them to self-book a suitable appointment via the NHS App or online${st.fbNext ? ', or book the next suitable slot for them' : ''}.`, `If unable to attend, please help them self-book via the NHS App/online${st.fbNext ? ' or book the next suitable slot' : ''}.`, 3);
+          else if(st.fbNext) add('If they cannot attend the slot offered, please book the next suitable slot for them.', 'If unable to attend, book the next suitable slot.', 3);
+          if(st.fbResubmit) add('They are also welcome to send a new online request if their needs change.', 'New online request welcome if needs change.', 1);
+        }
+      }
+      if(st.safety) add(SAFETY.l, SAFETY.s, 2);
+      if(st.nosms) add(NOSMS.l, NOSMS.s, 2);
+      if(st.record) add(RECORD.l, RECORD.s, 1);
+    }
+    else if(st.outcome==='mine'){
+      const slot = (S.slot||'').trim() || 'Tel Triage KLINIK DR TO BOOK ONLY';
+      add(`On my ${st.list} list on EMIS, please book this case into one of the blue '${slot}' slots.`, `Please book into one of my blue '${slot}' slots (${st.list} list on EMIS).`, 5);
+      if(st.upload) add('Make sure it is also uploaded on the morning list as usual.', 'Also upload to the morning list as usual.', 3);
+      if(st.nosms) add(NOSMS.l, NOSMS.s, 4);
+      if(st.record) add(RECORD.l, RECORD.s, 1);
+    }
+    else if(st.outcome==='contact'){
+      const custom = st.check==='custom';
+      if(custom) add(`Please contact the patient and ask: ${tidy(st.checkCustom) || '[your question].'}`, null, 5);
+      else add('Please contact the patient and check whether they still have this problem.', 'Please contact the patient: do they still have this problem?', 5);
+      const cond = custom ? 'If the problem is ongoing' : 'If they do';
+      if(st.then==='f2f'){
+        add(`${cond}, please offer a face-to-face review ASAP with the next available GP/ANP.`, `${cond}, offer F2F ASAP with the next available GP/ANP.`, 4);
+        add('If they cannot attend today, please help them self-book the next suitable slot via the NHS App or online.', 'If unable to attend today, help them self-book the next suitable slot.', 3);
+      } else if(st.then==='tel'){
+        add(`${cond}, please book a telephone consultation ASAP with the next available GP/ANP.`, `${cond}, book a telephone consult ASAP with the next available GP/ANP.`, 4);
+        add('If they cannot take a call today, please help them self-book the next suitable slot via the NHS App or online.', 'If not today, help them self-book the next suitable slot.', 3);
+      } else if(st.then==='me'){
+        add(`${cond}, please book them in with me at the earliest slot.`, null, 4);
+      } else {
+        add('Please add their answer to the case and send it back to me.', 'Add their answer to the case and send back to me.', 4);
+      }
+      if(st.then!=='report' && st.settled) add('If it has settled, please complete the case.', 'If settled, complete the case.', 2);
+      if(st.safety) add(SAFETY.l, SAFETY.s, 2);
+      if(st.nosms) add(NOSMS.l, NOSMS.s, 2);
+      if(st.record) add(RECORD.l, RECORD.s, 1);
+    }
+    else if(st.outcome==='signpost'){
+      const sv = st.service;
+      if(sv==='pharmacyfirst') add('Please direct the patient to Pharmacy First for this.', null, 5);
+      else if(sv==='mecs') add('Please signpost the patient to the Minor Eye Conditions Service (MECS).', 'Please signpost the patient to MECS (minor eye conditions).', 5);
+      else if(sv==='nhsapp') add('Please show the patient how to book an appointment via the NHS App, or talk them through it while on the phone - explain it is the easiest way to book.', 'Please talk the patient through booking via the NHS App - the easiest way to book.', 5);
+      else add(`Please signpost the patient to ${st.serviceCustom.trim() || '[service]'}.`, null, 5);
+      if(sv==='nhsapp'){
+        if(st.confirm) add('Please make sure they have secured a suitable slot before ending the call.', 'Check they have a slot booked before ending the call.', 4);
+      } else if(st.comeback){
+        add('Please explain that if they do not get help there, they should contact us again.', 'If no help there, they should contact us again.', 4);
+      }
+      if(st.safety) add(SAFETY_SP.l, SAFETY_SP.s, 2);
+      if(st.record) add(RECORD.l, RECORD.s, 1);
+    }
+    else if(st.outcome==='admin'){
+      if(st.adminType==='letter'){
+        add('This is a private letter request. Please contact the patient and explain the procedure and fees for private letters.', 'Private letter request: please contact the patient and explain the procedure and fees.', 5);
+        if(st.adminList) add('Once agreed, please add it to my admin list.', 'Then add to my admin list.', 3);
+      } else {
+        add(tidy(st.adminCustom) || 'Please [describe the request].', null, 5);
+      }
+      if(st.record) add(RECORD.l, RECORD.s, 1);
+    }
+    else if(st.outcome==='done'){
+      add('I have dealt with this case.', null, 5);
+      if(st.addList && st.complete) add('Please put it on my EMIS list (if not already done) and complete the case.', 'Please add to my EMIS list (if not already) and complete the case.', 4);
+      else if(st.addList) add('Please put it on my EMIS list (if not already done).', 'Please add to my EMIS list (if not already).', 4);
+      else if(st.complete) add('Please complete the case.', null, 4);
+      const pm = st.patientMsg.trim();
+      if(pm) add(`Please text the patient: "${pm}"`, null, 3);
+      else if(st.nosms) add('No text message to the patient is needed.', 'No text to patient needed.', 2);
+    }
+    return f;
+  }
+
+  function compose(){
+    const f = frags();
+    const name = (S.name||'').trim();
+    const greet = 'Hi Team,';
+    const sign = name ? `Thanks, ${name}` : 'Thanks';
+    const sep = S.breaks ? '\n' : ' ';
+    const short = new Set();
+    const render = () => greet + sep + f.map((x,i) => short.has(i) ? x.s : x.l).join(' ') + sep + sign;
+    let text = render(), compacted = false;
+    const limit = +S.limit || 500;
+    if(text.length > limit){
+      const order = f.map((x,i)=>i).sort((a,b)=> f[a].p - f[b].p);
+      for(const i of order){
+        if(text.length <= limit) break;
+        if(f[i].s !== f[i].l){ short.add(i); compacted = true; text = render(); }
+      }
+    }
+    return {text, compacted, over: text.length > limit, limit};
+  }
+
+  /* ---------- rendering ---------- */
+  const el = {
+    presets:$('#presets'), outcomes:$('#outcomes'), options:$('#options'), msg:$('#msg'),
+    count:$('#count'), count2:$('#count2'), meter:$('#meter'), note:$('#note'), regen:$('#regen'),
+    copy:$('#copy'), copy2:$('#copy2'), name:$('#name'), signer:$('#signer')
+  };
+  let edited = false;
+
+  function renderPresets(){
+    el.presets.innerHTML = PRESETS.map((p,i)=>`<button type="button" class="chip" data-p="${i}">${esc(p.l)}</button>`).join('');
+  }
+  function renderOutcomes(){
+    el.outcomes.innerHTML = OUTCOMES.map(o=>`<button type="button" class="${st.outcome===o.id?'on':''}" data-o="${o.id}" aria-pressed="${st.outcome===o.id}">${esc(o.label)}</button>`).join('');
+  }
+  const row = (label, inner, hint) => `<div class="row"><div class="rl">${label}${hint?`<span class="rh">${esc(hint)}</span>`:''}</div><div class="rc">${inner}</div></div>`;
+  const chips = (key, opts) => `<div class="chips">${opts.map(o=>`<button type="button" class="chip${st[key]===o.v?' on':''}${o.tone?' t-'+o.tone:''}" data-k="${key}" data-v="${esc(o.v)}" aria-pressed="${st[key]===o.v}">${o.tone?'<i class="dot"></i>':''}${esc(o.l)}</button>`).join('')}</div>`;
+  const togs = list => `<div class="togs">${list.map(t=>`<button type="button" role="switch" aria-checked="${!!st[t.k]}" class="tog${st[t.k]?' on':''}" data-t="${t.k}"><span class="sw"></span><span>${esc(t.l)}</span></button>`).join('')}</div>`;
+  const txt = (key, ph) => `<input type="text" class="txt" data-x="${key}" placeholder="${esc(ph)}" value="${esc(st[key])}" autocomplete="off">`;
+  const nameChips = (key, list, anyLabel) => chips(key, [{v:'', l:anyLabel}].concat(list.map(n=>({v:n, l:n}))));
+
+  function renderOptions(){
+    const o = OUTCOMES.find(x=>x.id===st.outcome);
+    let html = `<div class="panel-head"><h2>${esc(o.label)}</h2><span class="rtype">Contract response: <b>${esc(o.rtype)}</b></span></div>`;
+    const URG = [
+      {v:'today', l:'Today (clinically urgent)', tone:'crit'},
+      {v:'soonest', l:'Next soonest slot', tone:'warn'},
+      {v:'routine', l:'When next available', tone:'ok'},
+      {v:'day', l:'Specific day'}
+    ];
+    const dayRow = st.urgency==='day' ? row('Day', chips('day', DAYS.map(d=>({v:d, l:d})))) : '';
+    const common = [
+      {k:'safety', l:'Safety-net line for patient'},
+      {k:'nosms', l:'No text message to patient'},
+      {k:'record', l:'Record outcome on EMIS'}
+    ];
+    if(st.outcome==='book'){
+      const whoOpts = [
+        {v:'anygp', l:'Any doctor/ANP'},
+        {v:'me', l:'Me'},
+        {v:'named', l:'Named doctor/ANP'},
+        {v:'pharm', l:'Pharmacist'},
+        {v:'fcp', l:'Physio (FCP)'},
+        {v:'nurse', l:'Practice nurse'},
+        {v:'phleb', l:'Phlebotomy'}
+      ];
+      let whoExtra = '';
+      if(st.who==='named'){
+        const r = names(S.gps);
+        whoExtra = (r.length ? nameChips('named', r, 'Choose') : '') + txt('namedCustom', r.length ? 'or type a name, e.g. a locum' : 'Type the name, e.g. Dr Patel or Sam (ANP)');
+      } else if(st.who==='pharm' || st.who==='fcp' || st.who==='nurse'){
+        const r = names(st.who==='pharm' ? S.pharms : st.who==='fcp' ? S.physios : S.nurses);
+        const anyLabel = st.who==='pharm' ? 'Any pharmacist' : st.who==='fcp' ? 'Any physio' : 'Any nurse';
+        whoExtra = (r.length ? nameChips('person', r, anyLabel) : '') + txt('personCustom', r.length ? 'or type a name, e.g. a locum' : 'Optional: name a specific person, e.g. a locum');
+      }
+      html += row('Who', chips('who', whoOpts) + whoExtra);
+      if(st.who==='me' || st.who==='named'){
+        html += row('Why them', chips('reason', [{v:'none', l:'No reason given'},{v:'skin', l:'Extra training in skin'},{v:'continuity', l:'Continuity'},{v:'reviewing', l:'Already reviewing'},{v:'custom', l:'Other'}]) + (st.reason==='custom' ? txt('reasonCustom', 'e.g. they saw the patient last week') : ''), 'Told to the patient');
+      }
+      if(st.who==='nurse'){
+        html += row('For', chips('purpose', [{v:'none', l:'Not specified'},{v:'smear', l:'Smear test'},{v:'travel', l:'Travel clinic'},{v:'other', l:'Other'}]) + (st.purpose==='other' ? txt('purposeCustom', 'e.g. a blood pressure check') : ''));
+      }
+      if(st.who!=='phleb' && !(st.who==='nurse' && st.purpose==='travel')){
+        html += row('Type', chips('modality', [{v:'f2f', l:'Face-to-face'},{v:'tel', l:'Telephone'},{v:'either', l:'Either, first available'}]));
+      }
+      html += row('When', chips('urgency', URG)) + dayRow;
+      const opts = [];
+      if(st.who==='phleb') opts.push({k:'hub', l:'Use the hub if available'});
+      else opts.push({k:'hub', l:'Hub slots can be used'});
+      if(st.who!=='phleb' && st.urgency!=='today'){
+        opts.push({k:'fbSelf', l:'If unable to attend: self-book via NHS App'});
+        opts.push({k:'fbNext', l:'If unable to attend: book next suitable slot'});
+        opts.push({k:'fbResubmit', l:'New online request welcome if needs change'});
+      }
+      html += row('Options', togs(opts.concat(common)), st.urgency==='today' ? 'Same-day path escalates to you if no slot' : '');
+    }
+    else if(st.outcome==='mine'){
+      html += row('List', chips('list', [{v:'AM', l:'AM list'},{v:'PM', l:'PM list'}]), `Slot label: '${(S.slot||'').trim() || 'Tel Triage KLINIK DR TO BOOK ONLY'}'`);
+      html += row('Options', togs([{k:'upload', l:'Also upload to the morning list'}, common[1], common[2]]));
+    }
+    else if(st.outcome==='contact'){
+      html += row('Ask', chips('check', [{v:'still', l:'Do they still have the problem?'},{v:'custom', l:'A specific question'}]) + (st.check==='custom' ? txt('checkCustom', 'e.g. which side is the pain on, and any fever?') : ''));
+      html += row('If ongoing', chips('then', [{v:'f2f', l:'F2F ASAP, next available GP/ANP'},{v:'tel', l:'Telephone ASAP, next available GP/ANP'},{v:'me', l:'Book with me'},{v:'report', l:'Just send the answer back to me'}]));
+      html += row('Options', togs([{k:'settled', l:'Complete the case if it has settled'}].concat(common)));
+    }
+    else if(st.outcome==='signpost'){
+      html += row('Service', chips('service', [{v:'pharmacyfirst', l:'Pharmacy First'},{v:'mecs', l:'MECS (minor eye conditions)'},{v:'nhsapp', l:'NHS App self-booking'},{v:'other', l:'Other service'}]) + (st.service==='other' ? txt('serviceCustom', 'e.g. the community mental health team') : ''));
+      const t = st.service==='nhsapp' ? [{k:'confirm', l:'Confirm a slot is secured before ending the call'}] : [{k:'comeback', l:'Contact us again if it does not help'}];
+      html += row('Options', togs(t.concat([common[0], common[2]])));
+    }
+    else if(st.outcome==='admin'){
+      html += row('Request', chips('adminType', [{v:'letter', l:'Private letter or report'},{v:'other', l:'Other'}]) + (st.adminType==='other' ? txt('adminCustom', 'e.g. Please contact the patient to confirm which pharmacy they use') : ''));
+      const t = st.adminType==='letter' ? [{k:'adminList', l:'Add to my admin list once agreed'}] : [];
+      html += row('Options', togs(t.concat([common[2]])));
+    }
+    else if(st.outcome==='done'){
+      html += row('Options', togs([{k:'addList', l:'Put it on my EMIS list'},{k:'complete', l:'Complete the case'},{k:'nosms', l:'No text to patient needed'}]));
+      html += row('Text for patient', txt('patientMsg', 'Optional: words for the team to text the patient'), 'Sent by the team');
+    }
+    el.options.innerHTML = html;
+  }
+
+  function update(){
+    const r = compose();
+    el.msg.value = r.text;
+    edited = false; el.regen.hidden = true;
+    paintCount(r);
+  }
+  function paintCount(r){
+    const n = el.msg.value.length, limit = r ? r.limit : (+S.limit || 500);
+    const over = n > limit, warn = !over && n > limit * 0.85;
+    const label = `${n} / ${limit}`;
+    [el.count, el.count2].forEach(c => { c.textContent = label; c.classList.toggle('over', over); c.classList.toggle('warn', warn); });
+    el.meter.style.width = Math.min(100, n / limit * 100) + '%';
+    el.meter.classList.toggle('over', over); el.meter.classList.toggle('warn', warn);
+    el.note.classList.toggle('over', over);
+    if(over) el.note.textContent = `Over the Klinik limit by ${n - limit} characters. Switch off an option or trim the text.`;
+    else if(r && r.compacted) el.note.textContent = 'Shortened automatically to fit the Klinik limit.';
+    else el.note.textContent = '';
+  }
+  function renderAll(){ renderOutcomes(); renderOptions(); update(); }
+
+  /* ---------- events ---------- */
+  el.presets.addEventListener('click', e => {
+    const b = e.target.closest('[data-p]'); if(!b) return;
+    const p = PRESETS[+b.dataset.p];
+    st = Object.assign(fresh(p.o), p.s);
+    if(p.o==='book' && p.s.urgency==='day') st.day = dayOk(S.myDay);
+    renderAll();
+    el.presets.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c===b));
+  });
+  el.outcomes.addEventListener('click', e => {
+    const b = e.target.closest('[data-o]'); if(!b) return;
+    st = fresh(b.dataset.o);
+    el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+    renderAll();
+  });
+  el.options.addEventListener('click', e => {
+    const chip = e.target.closest('[data-k]');
+    if(chip){
+      const k = chip.dataset.k, v = chip.dataset.v;
+      st[k] = v;
+      if(k==='who'){ st.person=''; st.personCustom=''; st.named=''; st.namedCustom=''; st.reason='none'; st.purpose='none';
+        if(v==='phleb'){ st.hub=true; st.safety=false; }
+        if(v==='pharm' && st.modality==='f2f' && st.urgency==='soonest'){ st.modality='tel'; st.urgency='routine'; }
+        if(v==='fcp'){ st.modality='either'; st.urgency='routine'; }
+        if(v==='nurse'){ st.modality='f2f'; st.urgency='routine'; st.safety=false; }
+        if(v==='me' && st.urgency==='soonest'){ st.urgency='day'; st.day=dayOk(S.myDay); }
+      }
+      if(k==='named') st.namedCustom='';
+      if(k==='person') st.personCustom='';
+      if(k==='service') st.safety = !!S.safetyDefault && v!=='nhsapp';
+      el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+      renderOptions(); update();
+      return;
+    }
+    const tog = e.target.closest('[data-t]');
+    if(tog){ st[tog.dataset.t] = !st[tog.dataset.t]; renderOptions(); update(); }
+  });
+  el.options.addEventListener('input', e => {
+    const i = e.target.closest('[data-x]'); if(!i) return;
+    st[i.dataset.x] = i.value;
+    const pair = {namedCustom:'named', personCustom:'person'}[i.dataset.x];
+    if(pair && i.value){ st[pair]=''; el.options.querySelectorAll(`[data-k="${pair}"]`).forEach(c => { c.classList.toggle('on', c.dataset.v===''); c.setAttribute('aria-pressed', c.dataset.v===''); }); }
+    update();
+  });
+  el.msg.addEventListener('input', () => { edited = true; el.regen.hidden = false; paintCount(null); });
+  el.regen.addEventListener('click', update);
+
+  async function copy(){
+    const t = el.msg.value;
+    let ok = false;
+    try { await navigator.clipboard.writeText(t); ok = true; } catch(e){}
+    if(!ok){ try { el.msg.focus(); el.msg.select(); ok = document.execCommand('copy'); el.msg.setSelectionRange(0,0); } catch(e){} }
+    [el.copy, el.copy2].forEach(b => { b.textContent = ok ? 'Copied' : 'Select and copy manually'; b.classList.toggle('done', ok); setTimeout(()=>{ b.textContent='Copy message'; b.classList.remove('done'); }, 1600); });
+  }
+  el.copy.addEventListener('click', copy);
+  el.copy2.addEventListener('click', copy);
+  document.addEventListener('keydown', e => { if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ e.preventDefault(); copy(); } });
+
+  /* signer */
+  el.name.value = S.name || '';
+  const paintSigner = () => el.signer.classList.toggle('needs', !(S.name||'').trim());
+  el.name.addEventListener('input', () => { S.name = el.name.value; saveS(); paintSigner(); update(); });
+  paintSigner();
+
+  /* settings */
+  document.querySelectorAll('[data-s]').forEach(i => {
+    i.value = S[i.dataset.s] ?? '';
+    i.addEventListener('input', () => {
+      const k = i.dataset.s;
+      S[k] = i.type==='number' ? (+i.value || DEFAULT_S.limit) : i.value;
+      saveS();
+      if(k==='myDay' && st.urgency==='day') st.day = dayOk(S.myDay);
+      renderOptions(); update();
+    });
+  });
+  const stogs = $('#s-togs');
+  function renderSTogs(){
+    const list = [{k:'safetyDefault', l:'Safety-net line on by default'},{k:'breaks', l:'Line breaks around the greeting and sign-off'}];
+    stogs.innerHTML = list.map(t=>`<button type="button" role="switch" aria-checked="${!!S[t.k]}" class="tog${S[t.k]?' on':''}" data-st="${t.k}"><span class="sw"></span><span>${esc(t.l)}</span></button>`).join('');
+  }
+  stogs.addEventListener('click', e => {
+    const b = e.target.closest('[data-st]'); if(!b) return;
+    S[b.dataset.st] = !S[b.dataset.st]; saveS(); renderSTogs(); update();
+  });
+  renderSTogs();
+
+  /* first paint: the most common message, ready to copy */
+  renderPresets();
+  st = Object.assign(fresh('book'), PRESETS[0].s);
+  renderAll();
+  el.presets.querySelector('.chip').classList.add('on');
+})();
+</script>
+</body>
+</html>
