@@ -316,7 +316,7 @@
       who:'anygp', named:'', namedCustom:'', person:'', personCustom:'', reason:'none', reasonCustom:'',
       modality:'f2f', urgency:'soonest', day:dayOk(S.myDay), hub:false,
       purpose:'none', purposeCustom:'', appResults:false,
-      fbSelf:true, fbNext:false, fbResubmit:false,
+      fbSelf:true, fbNext:false, fbResubmit:false, smsBook:true,
       safety: outcome==='book' || outcome==='contact' || outcome==='signpost' ? !!S.safetyDefault : false,
       nosms: outcome==='mine', record:false,
       list:'PM', upload:true,
@@ -497,10 +497,12 @@
         if(st.urgency==='day') add(`If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
         if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
       } else {
+        const tel = st.modality==='tel';
         switch(st.urgency){
           case 'today':
             add(`${mod.l}${purpose} with ${who.l} today - clinically urgent, same day please.`, `${mod.s}${purpose} with ${who.s} today - clinically urgent.`, 5);
-            add('If nothing is available today, or they cannot attend today, please message me straight away.', 'No slot today or cannot attend: message me straight away.', 4);
+            if(tel) add('If no telephone slot is available today, please message me straight away.', 'No slot today: message me straight away.', 4);
+            else add('If nothing is available today, or they cannot attend today, please message me straight away.', 'No slot today or cannot attend: message me straight away.', 4);
             break;
           case 'soonest':
             add(`${mod.l}${purpose} ASAP with ${who.l} - next soonest slot please, so we do not waste access.`, `${mod.s}${purpose} ASAP with ${who.s} - next soonest slot please.`, 5);
@@ -510,19 +512,26 @@
             break;
           case 'day':
             add(`${mod.l}${purpose} with ${who.l} on ${day} (earliest appointment).`, `${mod.s}${purpose} with ${who.s} on ${day}.`, 5);
-            add(`If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
+            if(tel) add(`If there is no slot this ${day}, please book the following week.`, `If not this ${day}, the following week.`, 4);
+            else add(`If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
             break;
         }
         if((st.who==='me' || st.who==='named') && st.reason!=='none') add(reasonSentence(), null, 3);
         if(st.purpose==='results' && st.appResults) add('Please let the patient know the results can be viewed in the NHS App before the call.', 'Results are viewable in the NHS App before the call.', 2);
         if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
-        if(st.urgency!=='today'){
+        if(tel){
+          if(st.smsBook) add('Please just book it and text the patient the appointment time - no need to call them first.', 'Book it and text the patient the time - no call needed.', 3);
+        } else if(st.urgency!=='today'){
           if(st.fbSelf) add(`If they cannot attend the slot offered, please encourage them to self-book a suitable appointment via the NHS App or online${st.fbNext ? ', or book the next suitable slot for them' : ''}.`, `If unable to attend, please help them self-book via the NHS App/online${st.fbNext ? ' or book the next suitable slot' : ''}.`, 3);
           else if(st.fbNext) add('If they cannot attend the slot offered, please book the next suitable slot for them.', 'If unable to attend, book the next suitable slot.', 3);
           if(st.fbResubmit) add('They are also welcome to send a new online request if their needs change.', 'New online request welcome if needs change.', 1);
         }
       }
-      if(st.safety) add(SAFETY.l, SAFETY.s, 2);
+      if(st.safety){
+        if(st.modality==='tel' && st.who!=='phleb' && st.smsBook) add('Please include in the text: if things get worse before the call, contact us again the same day or call 111 (999 in an emergency).', 'Text should include: if worse before the call, contact us same day or call 111 (999 if emergency).', 2);
+        else if(st.modality==='tel' && st.who!=='phleb') add('Please advise the patient: if things get worse before the call, contact us again the same day or call 111 (999 in an emergency).', 'Safety-net: if worse before the call, contact us same day or call 111 (999 if emergency).', 2);
+        else add(SAFETY.l, SAFETY.s, 2);
+      }
       if(st.nosms) add(NOSMS.l, NOSMS.s, 2);
       if(st.record) add(RECORD.l, RECORD.s, 1);
     }
@@ -542,8 +551,7 @@
         add(`${cond}, please offer a face-to-face review ASAP with the next available GP/ANP.`, `${cond}, offer F2F ASAP with the next available GP/ANP.`, 4);
         add('If they cannot attend today, please help them self-book the next suitable slot via the NHS App or online.', 'If unable to attend today, help them self-book the next suitable slot.', 3);
       } else if(st.then==='tel'){
-        add(`${cond}, please book a telephone consultation ASAP with the next available GP/ANP.`, `${cond}, book a telephone consult ASAP with the next available GP/ANP.`, 4);
-        add('If they cannot take a call today, please help them self-book the next suitable slot via the NHS App or online.', 'If not today, help them self-book the next suitable slot.', 3);
+        add(`${cond}, please book a telephone consultation ASAP with the next available GP/ANP and text them the appointment time.`, `${cond}, book a telephone consult ASAP with the next available GP/ANP and text them the time.`, 4);
       } else if(st.then==='me'){
         add(`${cond}, please book them in with me at the earliest slot.`, null, 4);
       } else {
@@ -686,12 +694,15 @@
       if(st.who==='phleb') opts.push({k:'hub', l:'Use the hub if available'});
       else opts.push({k:'hub', l:'Hub slots can be used'});
       if(st.purpose==='results') opts.push({k:'appResults', l:'Tell patient results are viewable in the NHS App'});
-      if(st.who!=='phleb' && st.urgency!=='today'){
+      if(st.who!=='phleb' && st.modality==='tel'){
+        opts.push({k:'smsBook', l:'Book it and text the patient the time (no call first)'});
+      } else if(st.who!=='phleb' && st.urgency!=='today'){
         opts.push({k:'fbSelf', l:'If unable to attend: self-book via NHS App'});
         opts.push({k:'fbNext', l:'If unable to attend: book next suitable slot'});
         opts.push({k:'fbResubmit', l:'New online request welcome if needs change'});
       }
-      html += row('Options', togs(opts.concat(common)), st.urgency==='today' ? 'Same-day path escalates to you if no slot' : '');
+      const optHint = st.modality==='tel' && st.who!=='phleb' ? 'Phone slots are allocated, not offered' : st.urgency==='today' ? 'Same-day path escalates to you if no slot' : '';
+      html += row('Options', togs(opts.concat(common)), optHint);
     }
     else if(st.outcome==='mine'){
       html += row('List', chips('list', [{v:'AM', l:'AM list'},{v:'PM', l:'PM list'}]), `Slot label: '${(S.slot||'').trim() || 'Tel Triage KLINIK DR TO BOOK ONLY'}'`);
@@ -789,7 +800,12 @@
       return;
     }
     const tog = e.target.closest('[data-t]');
-    if(tog){ st[tog.dataset.t] = !st[tog.dataset.t]; renderOptions(); update(); }
+    if(tog){
+      const k = tog.dataset.t; st[k] = !st[k];
+      if(k==='smsBook' && st.smsBook) st.nosms = false;
+      if(k==='nosms' && st.nosms) st.smsBook = false;
+      renderOptions(); update();
+    }
   });
   el.options.addEventListener('input', e => {
     const i = e.target.closest('[data-x]'); if(!i) return;
