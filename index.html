@@ -315,7 +315,7 @@
       outcome,
       who:'anygp', named:'', namedCustom:'', person:'', personCustom:'', reason:'none', reasonCustom:'',
       modality:'f2f', urgency:'soonest', day:dayOk(S.myDay), hub:false,
-      purpose:'none', purposeCustom:'',
+      purpose:'none', purposeCustom:'', appResults:false,
       fbSelf:true, fbNext:false, fbResubmit:false,
       safety: outcome==='book' || outcome==='contact' || outcome==='signpost' ? !!S.safetyDefault : false,
       nosms: outcome==='mine', record:false,
@@ -334,6 +334,7 @@
     {l:'F2F ASAP · hub too', o:'book', s:{who:'anygp', modality:'f2f', urgency:'soonest', hub:true}},
     {l:'Same day · urgent', o:'book', s:{who:'anygp', modality:'f2f', urgency:'today'}},
     {l:'Tel · any GP · next available', o:'book', s:{who:'anygp', modality:'tel', urgency:'routine'}},
+    {l:'Results · tel any doctor', o:'book', s:{who:'anydr', modality:'tel', urgency:'routine', purpose:'results', safety:false}},
     {l:'Pharmacist · tel', o:'book', s:{who:'pharm', modality:'tel', urgency:'routine'}},
     {l:'Physio (FCP) · first available', o:'book', s:{who:'fcp', modality:'either', urgency:'routine'}},
     {l:'PA · next available', o:'book', s:{who:'pa', modality:'any', urgency:'routine'}},
@@ -451,6 +452,7 @@
     const withRole = role => p.includes('(') ? `${p}, ${role}` : `${p} (${role})`;
     switch(st.who){
       case 'anygp': return {l:'any doctor/ANP', s:'any doctor/ANP'};
+      case 'anydr': return {l:'any doctor', s:'any doctor'};
       case 'me': return {l:'me', s:'me'};
       case 'named': { const n = namedName() || 'the named clinician'; return {l:n, s:n}; }
       case 'pa': { if(p) return {l:withRole('PA'), s:withRole('PA')}; return {l:'the physician associate (PA)', s:'the PA'}; }
@@ -461,9 +463,14 @@
     return {l:'', s:''};
   }
   function purposePhrase(){
-    if(st.who!=='nurse') return '';
-    if(st.purpose==='smear') return ' for a smear test';
-    if(st.purpose==='other' && st.purposeCustom.trim()) return ' for ' + st.purposeCustom.trim();
+    if(st.who==='phleb') return '';
+    switch(st.purpose){
+      case 'smear': return ' for a smear test';
+      case 'results': return ' to discuss their test results';
+      case 'medreview': return ' for a medication review';
+      case 'followup': return ' for a follow-up';
+      case 'other': return st.purposeCustom.trim() ? ' for ' + st.purposeCustom.trim() : '';
+    }
     return '';
   }
   function reasonSentence(){
@@ -507,6 +514,7 @@
             break;
         }
         if((st.who==='me' || st.who==='named') && st.reason!=='none') add(reasonSentence(), null, 3);
+        if(st.purpose==='results' && st.appResults) add('Please let the patient know the results can be viewed in the NHS App before the call.', 'Results are viewable in the NHS App before the call.', 2);
         if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
         if(st.urgency!=='today'){
           if(st.fbSelf) add(`If they cannot attend the slot offered, please encourage them to self-book a suitable appointment via the NHS App or online${st.fbNext ? ', or book the next suitable slot for them' : ''}.`, `If unable to attend, please help them self-book via the NHS App/online${st.fbNext ? ' or book the next suitable slot' : ''}.`, 3);
@@ -643,6 +651,7 @@
     if(st.outcome==='book'){
       const whoOpts = [
         {v:'anygp', l:'Any doctor/ANP'},
+        {v:'anydr', l:'Any doctor'},
         {v:'me', l:'Me'},
         {v:'named', l:'Named doctor/ANP'},
         {v:'pa', l:'Physician associate (PA)'},
@@ -666,6 +675,8 @@
       }
       if(st.who==='nurse'){
         html += row('For', chips('purpose', [{v:'none', l:'Not specified'},{v:'smear', l:'Smear test'},{v:'travel', l:'Travel clinic'},{v:'other', l:'Other'}]) + (st.purpose==='other' ? txt('purposeCustom', 'e.g. a blood pressure check') : ''));
+      } else if(st.who!=='phleb'){
+        html += row('For', chips('purpose', [{v:'none', l:'Not specified'},{v:'results', l:'Test results'},{v:'medreview', l:'Medication review'},{v:'followup', l:'Follow-up'},{v:'other', l:'Other'}]) + (st.purpose==='other' ? txt('purposeCustom', 'e.g. a blood pressure review') : ''), 'Optional');
       }
       if(st.who!=='phleb' && !(st.who==='nurse' && st.purpose==='travel')){
         html += row('Type', chips('modality', [{v:'f2f', l:'Face-to-face'},{v:'tel', l:'Telephone'},{v:'either', l:'Either, first available'},{v:'any', l:'Not specified'}]));
@@ -674,6 +685,7 @@
       const opts = [];
       if(st.who==='phleb') opts.push({k:'hub', l:'Use the hub if available'});
       else opts.push({k:'hub', l:'Hub slots can be used'});
+      if(st.purpose==='results') opts.push({k:'appResults', l:'Tell patient results are viewable in the NHS App'});
       if(st.who!=='phleb' && st.urgency!=='today'){
         opts.push({k:'fbSelf', l:'If unable to attend: self-book via NHS App'});
         opts.push({k:'fbNext', l:'If unable to attend: book next suitable slot'});
