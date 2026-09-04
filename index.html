@@ -333,7 +333,7 @@
     {l:'F2F ASAP · any GP/ANP', o:'book', s:{who:'anygp', modality:'f2f', urgency:'soonest'}},
     {l:'F2F ASAP · hub too', o:'book', s:{who:'anygp', modality:'f2f', urgency:'soonest', hub:true}},
     {l:'Same day · urgent', o:'book', s:{who:'anygp', modality:'f2f', urgency:'today'}},
-    {l:'Tel · any GP · next available', o:'book', s:{who:'anygp', modality:'tel', urgency:'routine'}},
+    {l:'Tel · any doctor · next available', o:'book', s:{who:'anydr', modality:'tel', urgency:'routine'}},
     {l:'Results · tel any doctor', o:'book', s:{who:'anydr', modality:'tel', urgency:'routine', purpose:'results', safety:false}},
     {l:'Pharmacist · tel', o:'book', s:{who:'pharm', modality:'tel', urgency:'routine'}},
     {l:'Physio (FCP) · first available', o:'book', s:{who:'fcp', modality:'either', urgency:'routine'}},
@@ -451,7 +451,10 @@
     const p = personName();
     const withRole = role => p.includes('(') ? `${p}, ${role}` : `${p} (${role})`;
     switch(st.who){
-      case 'anygp': return {l:'any doctor/ANP', s:'any doctor/ANP'};
+      case 'anygp':
+        if(st.modality==='tel') return {l:'any doctor', s:'any doctor'};
+        if(st.modality==='either') return {l:'any doctor, or ANP if face-to-face', s:'any doctor (ANP if F2F)'};
+        return {l:'any doctor/ANP', s:'any doctor/ANP'};
       case 'anydr': return {l:'any doctor', s:'any doctor'};
       case 'me': return {l:'me', s:'me'};
       case 'named': { const n = namedName() || 'the named clinician'; return {l:n, s:n}; }
@@ -551,7 +554,7 @@
         add(`${cond}, please offer a face-to-face review ASAP with the next available GP/ANP.`, `${cond}, offer F2F ASAP with the next available GP/ANP.`, 4);
         add('If they cannot attend today, please help them self-book the next suitable slot via the NHS App or online.', 'If unable to attend today, help them self-book the next suitable slot.', 3);
       } else if(st.then==='tel'){
-        add(`${cond}, please book a telephone consultation ASAP with the next available GP/ANP and text them the appointment time.`, `${cond}, book a telephone consult ASAP with the next available GP/ANP and text them the time.`, 4);
+        add(`${cond}, please book a telephone consultation ASAP with the next available doctor and text them the appointment time.`, `${cond}, book a telephone consult ASAP with the next available doctor and text them the time.`, 4);
       } else if(st.then==='me'){
         add(`${cond}, please book them in with me at the earliest slot.`, null, 4);
       } else {
@@ -677,7 +680,7 @@
         const anyLabel = {pharm:'Any pharmacist', fcp:'Any physio', nurse:'Any nurse', pa:'Any PA'}[st.who];
         whoExtra = (r.length ? nameChips('person', r, anyLabel) : '') + txt('personCustom', r.length ? 'or type a name, e.g. a locum' : 'Optional: name a specific person, e.g. a locum');
       }
-      html += row('Who', chips('who', whoOpts) + whoExtra);
+      html += row('Who', chips('who', whoOpts) + whoExtra, st.modality==='tel' ? 'Telephone consultations are with a doctor' : '');
       if(st.who==='me' || st.who==='named'){
         html += row('Why them', chips('reason', [{v:'none', l:'No reason given'},{v:'skin', l:'Extra training in skin'},{v:'continuity', l:'Continuity'},{v:'reviewing', l:'Already reviewing'},{v:'custom', l:'Other'}]) + (st.reason==='custom' ? txt('reasonCustom', 'e.g. they saw the patient last week') : ''), 'Told to the patient');
       }
@@ -794,6 +797,7 @@
       }
       if(k==='named') st.namedCustom='';
       if(k==='person') st.personCustom='';
+      if(k==='modality' && v==='tel' && st.who==='anygp') st.who='anydr';
       if(k==='service'){ const svc = SERVICE(v); st.safety = !!S.safetyDefault && (svc ? svc.safety : v!=='nhsapp'); st.comeback = svc ? svc.comeback : true; }
       el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
       renderOptions(); update();
