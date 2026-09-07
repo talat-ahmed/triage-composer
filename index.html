@@ -523,7 +523,7 @@
         if(st.purpose==='results' && st.appResults) add('Please let the patient know the results can be viewed in the NHS App before the call.', 'Results are viewable in the NHS App before the call.', 2);
         if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
         if(tel){
-          if(st.smsBook) add('Please just book it and text the patient the appointment time - no need to call them first.', 'Book it and text the patient the time - no call needed.', 3);
+          if(st.smsBook) add('Please just book it and text the patient the date they will receive the call - no need to phone them first.', 'Book it and text the patient the date of the call - no need to phone first.', 3);
         } else if(st.urgency!=='today'){
           if(st.fbSelf) add(`If they cannot attend the slot offered, please encourage them to self-book a suitable appointment via the NHS App or online${st.fbNext ? ', or book the next suitable slot for them' : ''}.`, `If unable to attend, please help them self-book via the NHS App/online${st.fbNext ? ' or book the next suitable slot' : ''}.`, 3);
           else if(st.fbNext) add('If they cannot attend the slot offered, please book the next suitable slot for them.', 'If unable to attend, book the next suitable slot.', 3);
@@ -554,7 +554,7 @@
         add(`${cond}, please offer a face-to-face review ASAP with the next available GP/ANP.`, `${cond}, offer F2F ASAP with the next available GP/ANP.`, 4);
         add('If they cannot attend today, please help them self-book the next suitable slot via the NHS App or online.', 'If unable to attend today, help them self-book the next suitable slot.', 3);
       } else if(st.then==='tel'){
-        add(`${cond}, please book a telephone consultation ASAP with the next available doctor and text them the appointment time.`, `${cond}, book a telephone consult ASAP with the next available doctor and text them the time.`, 4);
+        add(`${cond}, please book a telephone consultation ASAP with the next available doctor and text them the date they will receive the call.`, `${cond}, book a telephone consult ASAP with the next available doctor and text them the date of the call.`, 4);
       } else if(st.then==='me'){
         add(`${cond}, please book them in with me at the earliest slot.`, null, 4);
       } else {
@@ -698,7 +698,7 @@
       else opts.push({k:'hub', l:'Hub slots can be used'});
       if(st.purpose==='results') opts.push({k:'appResults', l:'Tell patient results are viewable in the NHS App'});
       if(st.who!=='phleb' && st.modality==='tel'){
-        opts.push({k:'smsBook', l:'Book it and text the patient the time (no call first)'});
+        opts.push({k:'smsBook', l:'Book it and text the patient the date of the call (no phone call first)'});
       } else if(st.who!=='phleb' && st.urgency!=='today'){
         opts.push({k:'fbSelf', l:'If unable to attend: self-book via NHS App'});
         opts.push({k:'fbNext', l:'If unable to attend: book next suitable slot'});
