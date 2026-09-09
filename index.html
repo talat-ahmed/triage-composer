@@ -140,6 +140,39 @@
   .set .help{font-size:12px;color:var(--text-2);margin-top:4px}
   .set.wide{grid-column:1/-1}
 
+  /* Header right */
+  .hdr-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .seg.mode{display:inline-flex;grid-template-columns:none;padding:3px}
+  .seg.mode button{padding:6px 12px;font-size:13px}
+  .seg.mode em{font-style:normal;font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.75;margin-left:4px}
+
+  /* Guided mode: one decision at a time, answered steps become a compact trail */
+  .panel.guided{padding:10px 18px 14px;display:grid;gap:8px}
+  .gdone{display:grid;grid-template-columns:118px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:transparent;padding:6px 4px;border-radius:8px;color:var(--text-2)}
+  .gdone:hover{background:var(--surface-3)}
+  .gdone .gql{font-size:12px;font-weight:600;letter-spacing:.02em}
+  .gdone .gans{display:inline-flex;align-items:center;gap:6px;color:var(--text);font-size:14px;min-width:0}
+  .gdone .gans b{font-weight:500;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .gdone .gedit{font-size:12px;color:var(--text-2);opacity:0;transition:opacity .12s}
+  .gdone:hover .gedit,.gdone:focus-visible .gedit{opacity:1}
+  .gstep{border-left:3px solid var(--accent);background:var(--surface-3);border-radius:0 10px 10px 0;padding:14px 16px 16px;margin:6px 0 4px;animation:gin .18s ease-out}
+  @keyframes gin{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .gstep .gn{font-family:var(--mono);font-size:11px;color:var(--text-2);letter-spacing:.04em}
+  .gstep h3{font-family:var(--display);font-weight:600;font-size:18px;margin:2px 0 12px;text-wrap:balance}
+  .gstep .gsub{font-size:12px;color:var(--text-2);margin:-8px 0 12px}
+  .gstep .rc{display:flex;flex-direction:column;gap:10px}
+  .gstep .ggrp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600;margin:4px 0 -4px}
+  .gact{display:flex;gap:8px;margin-top:12px;align-items:center}
+  .btn-sm{border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:8px 14px;font-weight:600;font-size:14px}
+  .btn-link{border:0;background:transparent;color:var(--text-2);padding:8px 6px;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+  .gready{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .gready h3{font-family:var(--display);font-size:17px;margin:0 0 2px;color:var(--accent)}
+  .gready p{margin:0;font-size:13px;color:var(--text-2)}
+  .card.pulse{box-shadow:0 0 0 3px var(--accent-soft),var(--shadow);transition:box-shadow .15s}
+  .card{transition:box-shadow .5s}
+  @media (prefers-reduced-motion: reduce){ .gstep{animation:none} }
+  @media (max-width:900px){ .gdone{grid-template-columns:1fr auto} .gdone .gql{grid-column:1/-1} }
+
   /* Mobile */
   .mobilebar{display:none}
   @media (max-width:900px){
@@ -162,9 +195,15 @@
       <h1>Klinik Triage Composer</h1>
       <p class="sub">Pick an outcome, adjust anything that differs, copy. Every message states what, who and by when, and never sends the patient away to "call back tomorrow".</p>
     </div>
-    <div class="signer" id="signer">
-      <label for="name">Signed as</label>
-      <input id="name" type="text" placeholder="Your name" autocomplete="off">
+    <div class="hdr-right">
+      <div class="seg mode" id="modeSeg" role="radiogroup" aria-label="Layout">
+        <button type="button" data-mode="panel">Panel</button>
+        <button type="button" data-mode="guided">Guided <em>beta</em></button>
+      </div>
+      <div class="signer" id="signer">
+        <label for="name">Signed as</label>
+        <input id="name" type="text" placeholder="Your name" autocomplete="off">
+      </div>
     </div>
   </header>
 
@@ -174,7 +213,7 @@
         <h2 class="eyebrow">Quick starts</h2>
         <div class="chips" id="presets"></div>
       </div>
-      <div class="block">
+      <div class="block" id="outcomeBlock">
         <h2 class="eyebrow">Outcome</h2>
         <div class="seg" id="outcomes"></div>
       </div>
@@ -650,119 +689,248 @@
     el.outcomes.innerHTML = OUTCOMES.map(o=>`<button type="button" class="${st.outcome===o.id?'on':''}" data-o="${o.id}" aria-pressed="${st.outcome===o.id}">${esc(o.label)}</button>`).join('');
   }
   const row = (label, inner, hint) => `<div class="row"><div class="rl">${label}${hint?`<span class="rh">${esc(hint)}</span>`:''}</div><div class="rc">${inner}</div></div>`;
-  const chips = (key, opts) => `<div class="chips">${opts.map(o=>`<button type="button" class="chip${st[key]===o.v?' on':''}${o.tone?' t-'+o.tone:''}" data-k="${key}" data-v="${esc(o.v)}" aria-pressed="${st[key]===o.v}">${o.tone?'<i class="dot"></i>':''}${esc(o.l)}</button>`).join('')}</div>`;
+  const chips = (key, opts, extra='') => `<div class="chips">${opts.map(o=>`<button type="button" class="chip${st[key]===o.v?' on':''}${o.tone?' t-'+o.tone:''}" data-k="${key}" data-v="${esc(o.v)}" aria-pressed="${st[key]===o.v}"${extra}>${o.tone?'<i class="dot"></i>':''}${esc(o.l)}</button>`).join('')}</div>`;
   const togs = list => `<div class="togs">${list.map(t=>`<button type="button" role="switch" aria-checked="${!!st[t.k]}" class="tog${st[t.k]?' on':''}" data-t="${t.k}"><span class="sw"></span><span>${esc(t.l)}</span></button>`).join('')}</div>`;
   const txt = (key, ph) => `<input type="text" class="txt" data-x="${key}" placeholder="${esc(ph)}" value="${esc(st[key])}" autocomplete="off">`;
-  const nameChips = (key, list, anyLabel) => chips(key, [{v:'', l:anyLabel}].concat(list.map(n=>({v:n, l:n}))));
+  const nameChips = (key, list, anyLabel, extra='') => chips(key, [{v:'', l:anyLabel}].concat(list.map(n=>({v:n, l:n}))), extra);
+  const noteChipsHtml = () => {
+    const shortcuts = String(S.noteShortcuts||'').split('|').map(s=>s.trim()).filter(Boolean);
+    return shortcuts.length ? `<div class="chips">${shortcuts.map(n=>`<button type="button" class="chip${st.notes.trim()===n?' on':''}" data-note="${esc(n)}" aria-pressed="${st.notes.trim()===n}">${esc(n)}</button>`).join('')}</div>` : '';
+  };
 
-  function renderOptions(){
-    const o = OUTCOMES.find(x=>x.id===st.outcome);
-    let html = `<div class="panel-head"><h2>${esc(o.label)}</h2><span class="rtype">Contract response: <b>${esc(o.rtype)}</b></span></div>`;
-    const URG = [
+  /* Option definitions for the current state, shared by both layouts */
+  function defs(){
+    const d = {};
+    d.URG = [
       {v:'today', l:'Today (clinically urgent)', tone:'crit'},
       {v:'soonest', l:'Next soonest slot', tone:'warn'},
       {v:'routine', l:'When next available', tone:'ok'},
       {v:'day', l:'Specific day'}
     ];
-    const dayRow = st.urgency==='day' ? row('Day', chips('day', DAYS.map(d=>({v:d, l:d})))) : '';
-    const common = [
+    d.common = [
       {k:'safety', l:'Safety-net line for patient'},
       {k:'nosms', l:'No text message to patient'},
       {k:'record', l:'Record outcome on EMIS'}
     ];
+    d.whoOpts = [
+      {v:'anygp', l:'Any doctor/ANP'},
+      {v:'anydr', l:'Any doctor'},
+      {v:'me', l:'Me'},
+      {v:'named', l:'Named doctor/ANP'},
+      {v:'pa', l:'Physician associate (PA)'},
+      {v:'mhp', l:'Mental health practitioner'},
+      {v:'pharm', l:'Pharmacist'},
+      {v:'fcp', l:'Physio (FCP)'},
+      {v:'nurse', l:'Practice nurse'},
+      {v:'phleb', l:'Phlebotomy'}
+    ];
+    d.mhpHint = `Telephone only${(S.mhpDay||'').trim() ? ', ' + S.mhpDay.trim() + ' clinic' : ''}${(S.mhpArea||'').trim() ? ', ' + S.mhpArea.trim() + ' residents' : ''}`;
+    d.whoHint = st.who==='mhp' ? d.mhpHint : st.modality==='tel' ? 'Telephone consultations are with a doctor' : '';
+    d.hasPerson = ['pharm','fcp','nurse','pa','mhp'].includes(st.who);
+    d.personRoster = d.hasPerson ? names({pharm:S.pharms, fcp:S.physios, nurse:S.nurses, pa:S.pas, mhp:S.mhps}[st.who]) : [];
+    d.anyLabel = {pharm:'Any pharmacist', fcp:'Any physio', nurse:'Any nurse', pa:'Any PA', mhp:'The MHP'}[st.who] || '';
+    d.gpRoster = names(S.gps);
+    d.reasonOpts = [{v:'none', l:'No reason given'},{v:'skin', l:'Extra training in skin'},{v:'continuity', l:'Continuity'},{v:'reviewing', l:'Already reviewing'},{v:'custom', l:'Other'}];
+    d.purposeOpts = st.who==='nurse' ? [{v:'none', l:'Not specified'},{v:'smear', l:'Smear test'},{v:'travel', l:'Travel clinic'},{v:'other', l:'Other'}]
+      : (st.who!=='phleb' && st.who!=='mhp') ? [{v:'none', l:'Not specified'},{v:'results', l:'Test results'},{v:'medreview', l:'Medication review'},{v:'followup', l:'Follow-up'},{v:'other', l:'Other'}] : null;
+    d.purposePh = st.who==='nurse' ? 'e.g. a blood pressure check' : 'e.g. a blood pressure review';
+    d.showModality = st.who!=='phleb' && st.who!=='mhp' && !(st.who==='nurse' && st.purpose==='travel');
+    d.modalityOpts = [{v:'f2f', l:'Face-to-face'},{v:'tel', l:'Telephone'},{v:'either', l:'Either, first available'},{v:'any', l:'Not specified'}];
+    d.showUrgency = st.who!=='mhp';
+    const opts = [];
+    if(st.who==='phleb') opts.push({k:'hub', l:'Use the hub if available'});
+    else if(st.who==='mhp') opts.push({k:'mhpCheck', l:`Check registered address is in ${(S.mhpArea||'').trim() || 'the eligible area'}`});
+    else opts.push({k:'hub', l:'Hub slots can be used'});
+    if(st.purpose==='results') opts.push({k:'appResults', l:'Tell patient results are viewable in the NHS App'});
+    if(st.who!=='phleb' && st.modality==='tel'){
+      opts.push({k:'smsBook', l:'Book it and text the patient the date of the call (no phone call first)'});
+    } else if(st.who!=='phleb' && st.urgency!=='today'){
+      opts.push({k:'fbSelf', l:'If unable to attend: self-book via NHS App'});
+      opts.push({k:'fbNext', l:'If unable to attend: book next suitable slot'});
+      opts.push({k:'fbResubmit', l:'New online request welcome if needs change'});
+    }
+    d.bookToggles = opts.concat(d.common);
+    d.optHint = st.modality==='tel' && st.who!=='phleb' ? 'Phone slots are allocated, not offered' : st.urgency==='today' ? 'Same-day path escalates to you if no slot' : '';
+    d.listOpts = [{v:'AM', l:'AM list'},{v:'PM', l:'PM list'}];
+    d.listHint = `Slot label: '${(S.slot||'').trim() || 'Tel Triage KLINIK DR TO BOOK ONLY'}'`;
+    d.mineToggles = [{k:'upload', l:'Also upload to the morning list'}, d.common[1], d.common[2]];
+    d.checkOpts = [{v:'still', l:'Do they still have the problem?'},{v:'custom', l:'A specific question'}];
+    d.thenOpts = [{v:'f2f', l:'F2F ASAP, next available GP/ANP'},{v:'tel', l:'Telephone ASAP, next available doctor'},{v:'me', l:'Book with me'},{v:'report', l:'Just send the answer back to me'}];
+    d.contactToggles = [{k:'settled', l:'Complete the case if it has settled'}].concat(d.common);
+    const byGroup = g => SERVICES.filter(s => s.group===g).map(s => ({v:s.id, l:s.label}));
+    d.serviceGroups = [
+      {l:'Pharmacy', hint:'National, walk in or GP referral', opts:byGroup('pharm')},
+      {l:'Self-refer', hint:'National, no GP referral needed', opts:byGroup('self')},
+      {l:'Urgent', hint:'NHS 111 routes', opts:byGroup('urgent')},
+      {l:'Screening', hint:'Patient can contact the service', opts:byGroup('screen')},
+      {l:'Other', hint:'Local services vary by area', opts:byGroup('life').concat([{v:'nhsapp', l:'NHS App self-booking'}], byGroup('local'), [{v:'other', l:'Other service'}])}
+    ];
+    const svc = SERVICE(st.service);
+    const t = st.service==='nhsapp' ? [{k:'confirm', l:'Confirm a slot is secured before ending the call'}] : [{k:'comeback', l:'Contact us again if it does not help'}];
+    if(svc) t.push({k:'explain', l:'Say what the service covers'});
+    if(svc && svc.link) t.push({k:'plink', l:'Ask the team to text the NHS link'});
+    d.signpostToggles = t.concat([d.common[0], d.common[2]]);
+    d.adminOpts = [{v:'letter', l:'Private letter or report'},{v:'other', l:'Other'}];
+    d.adminToggles = (st.adminType==='letter' ? [{k:'adminList', l:'Add to my admin list once agreed'}] : []).concat([d.common[2]]);
+    d.doneToggles = [{k:'addList', l:'Put it on my EMIS list'},{k:'complete', l:'Complete the case'},{k:'nosms', l:'No text to patient needed'}];
+    return d;
+  }
+
+  function renderOptions(){
+    const o = OUTCOMES.find(x=>x.id===st.outcome);
+    const d = defs();
+    let html = `<div class="panel-head"><h2>${esc(o.label)}</h2><span class="rtype">Contract response: <b>${esc(o.rtype)}</b></span></div>`;
+    const dayRow = st.urgency==='day' ? row('Day', chips('day', DAYS.map(x=>({v:x, l:x})))) : '';
     if(st.outcome==='book'){
-      const whoOpts = [
-        {v:'anygp', l:'Any doctor/ANP'},
-        {v:'anydr', l:'Any doctor'},
-        {v:'me', l:'Me'},
-        {v:'named', l:'Named doctor/ANP'},
-        {v:'pa', l:'Physician associate (PA)'},
-        {v:'mhp', l:'Mental health practitioner'},
-        {v:'pharm', l:'Pharmacist'},
-        {v:'fcp', l:'Physio (FCP)'},
-        {v:'nurse', l:'Practice nurse'},
-        {v:'phleb', l:'Phlebotomy'}
-      ];
       let whoExtra = '';
       if(st.who==='named'){
-        const r = names(S.gps);
-        whoExtra = (r.length ? nameChips('named', r, 'Choose') : '') + txt('namedCustom', r.length ? 'or type a name, e.g. a locum' : 'Type the name, e.g. Dr Patel or Sam (ANP)');
-      } else if(st.who==='pharm' || st.who==='fcp' || st.who==='nurse' || st.who==='pa' || st.who==='mhp'){
-        const r = names({pharm:S.pharms, fcp:S.physios, nurse:S.nurses, pa:S.pas, mhp:S.mhps}[st.who]);
-        const anyLabel = {pharm:'Any pharmacist', fcp:'Any physio', nurse:'Any nurse', pa:'Any PA', mhp:'The MHP'}[st.who];
-        whoExtra = (r.length ? nameChips('person', r, anyLabel) : '') + txt('personCustom', r.length ? 'or type a name, e.g. a locum' : 'Optional: name a specific person, e.g. a locum');
+        whoExtra = (d.gpRoster.length ? nameChips('named', d.gpRoster, 'Choose') : '') + txt('namedCustom', d.gpRoster.length ? 'or type a name, e.g. a locum' : 'Type the name, e.g. Dr Patel or Sam (ANP)');
+      } else if(d.hasPerson){
+        whoExtra = (d.personRoster.length ? nameChips('person', d.personRoster, d.anyLabel) : '') + txt('personCustom', d.personRoster.length ? 'or type a name, e.g. a locum' : 'Optional: name a specific person, e.g. a locum');
       }
-      const mhpHint = `Telephone only${(S.mhpDay||'').trim() ? ', ' + S.mhpDay.trim() + ' clinic' : ''}${(S.mhpArea||'').trim() ? ', ' + S.mhpArea.trim() + ' residents' : ''}`;
-      html += row('Who', chips('who', whoOpts) + whoExtra, st.who==='mhp' ? mhpHint : st.modality==='tel' ? 'Telephone consultations are with a doctor' : '');
+      html += row('Who', chips('who', d.whoOpts) + whoExtra, d.whoHint);
       if(st.who==='me' || st.who==='named'){
-        html += row('Why them', chips('reason', [{v:'none', l:'No reason given'},{v:'skin', l:'Extra training in skin'},{v:'continuity', l:'Continuity'},{v:'reviewing', l:'Already reviewing'},{v:'custom', l:'Other'}]) + (st.reason==='custom' ? txt('reasonCustom', 'e.g. they saw the patient last week') : ''), 'Told to the patient');
+        html += row('Why them', chips('reason', d.reasonOpts) + (st.reason==='custom' ? txt('reasonCustom', 'e.g. they saw the patient last week') : ''), 'Told to the patient');
       }
-      if(st.who==='nurse'){
-        html += row('For', chips('purpose', [{v:'none', l:'Not specified'},{v:'smear', l:'Smear test'},{v:'travel', l:'Travel clinic'},{v:'other', l:'Other'}]) + (st.purpose==='other' ? txt('purposeCustom', 'e.g. a blood pressure check') : ''));
-      } else if(st.who!=='phleb' && st.who!=='mhp'){
-        html += row('For', chips('purpose', [{v:'none', l:'Not specified'},{v:'results', l:'Test results'},{v:'medreview', l:'Medication review'},{v:'followup', l:'Follow-up'},{v:'other', l:'Other'}]) + (st.purpose==='other' ? txt('purposeCustom', 'e.g. a blood pressure review') : ''), 'Optional');
+      if(d.purposeOpts){
+        html += row('For', chips('purpose', d.purposeOpts) + (st.purpose==='other' ? txt('purposeCustom', d.purposePh) : ''), st.who==='nurse' ? '' : 'Optional');
       }
-      if(st.who!=='phleb' && st.who!=='mhp' && !(st.who==='nurse' && st.purpose==='travel')){
-        html += row('Type', chips('modality', [{v:'f2f', l:'Face-to-face'},{v:'tel', l:'Telephone'},{v:'either', l:'Either, first available'},{v:'any', l:'Not specified'}]));
-      }
-      if(st.who!=='mhp') html += row('When', chips('urgency', URG)) + dayRow;
-      const opts = [];
-      if(st.who==='phleb') opts.push({k:'hub', l:'Use the hub if available'});
-      else if(st.who==='mhp') opts.push({k:'mhpCheck', l:`Check registered address is in ${(S.mhpArea||'').trim() || 'the eligible area'}`});
-      else opts.push({k:'hub', l:'Hub slots can be used'});
-      if(st.purpose==='results') opts.push({k:'appResults', l:'Tell patient results are viewable in the NHS App'});
-      if(st.who!=='phleb' && st.modality==='tel'){
-        opts.push({k:'smsBook', l:'Book it and text the patient the date of the call (no phone call first)'});
-      } else if(st.who!=='phleb' && st.urgency!=='today'){
-        opts.push({k:'fbSelf', l:'If unable to attend: self-book via NHS App'});
-        opts.push({k:'fbNext', l:'If unable to attend: book next suitable slot'});
-        opts.push({k:'fbResubmit', l:'New online request welcome if needs change'});
-      }
-      const optHint = st.modality==='tel' && st.who!=='phleb' ? 'Phone slots are allocated, not offered' : st.urgency==='today' ? 'Same-day path escalates to you if no slot' : '';
-      html += row('Options', togs(opts.concat(common)), optHint);
+      if(d.showModality) html += row('Type', chips('modality', d.modalityOpts));
+      if(d.showUrgency) html += row('When', chips('urgency', d.URG)) + dayRow;
+      html += row('Options', togs(d.bookToggles), d.optHint);
     }
     else if(st.outcome==='mine'){
-      html += row('List', chips('list', [{v:'AM', l:'AM list'},{v:'PM', l:'PM list'}]), `Slot label: '${(S.slot||'').trim() || 'Tel Triage KLINIK DR TO BOOK ONLY'}'`);
-      html += row('Options', togs([{k:'upload', l:'Also upload to the morning list'}, common[1], common[2]]));
+      html += row('List', chips('list', d.listOpts), d.listHint);
+      html += row('Options', togs(d.mineToggles));
     }
     else if(st.outcome==='contact'){
-      html += row('Ask', chips('check', [{v:'still', l:'Do they still have the problem?'},{v:'custom', l:'A specific question'}]) + (st.check==='custom' ? txt('checkCustom', 'e.g. which side is the pain on, and any fever?') : ''));
-      html += row('If ongoing', chips('then', [{v:'f2f', l:'F2F ASAP, next available GP/ANP'},{v:'tel', l:'Telephone ASAP, next available GP/ANP'},{v:'me', l:'Book with me'},{v:'report', l:'Just send the answer back to me'}]));
-      html += row('Options', togs([{k:'settled', l:'Complete the case if it has settled'}].concat(common)));
+      html += row('Ask', chips('check', d.checkOpts) + (st.check==='custom' ? txt('checkCustom', 'e.g. which side is the pain on, and any fever?') : ''));
+      html += row('If ongoing', chips('then', d.thenOpts));
+      html += row('Options', togs(d.contactToggles));
     }
     else if(st.outcome==='signpost'){
-      const byGroup = g => SERVICES.filter(s => s.group===g).map(s => ({v:s.id, l:s.label}));
-      html += row('Pharmacy', chips('service', byGroup('pharm')), 'National, walk in or GP referral');
-      html += row('Self-refer', chips('service', byGroup('self')), 'National, no GP referral needed');
-      html += row('Urgent', chips('service', byGroup('urgent')), 'NHS 111 routes');
-      html += row('Screening', chips('service', byGroup('screen')), 'Patient can contact the service');
-      html += row('Other', chips('service', byGroup('life').concat([{v:'nhsapp', l:'NHS App self-booking'}], byGroup('local'), [{v:'other', l:'Other service'}])) + (st.service==='other' ? txt('serviceCustom', 'e.g. the community mental health team') : ''), 'Local services vary by area');
-      const svc = SERVICE(st.service);
-      const t = st.service==='nhsapp' ? [{k:'confirm', l:'Confirm a slot is secured before ending the call'}] : [{k:'comeback', l:'Contact us again if it does not help'}];
-      if(svc) t.push({k:'explain', l:'Say what the service covers'});
-      if(svc && svc.link) t.push({k:'plink', l:'Ask the team to text the NHS link'});
-      html += row('Options', togs(t.concat([common[0], common[2]])));
+      d.serviceGroups.forEach((g, i) => {
+        const last = i===d.serviceGroups.length-1;
+        html += row(g.l, chips('service', g.opts) + (last && st.service==='other' ? txt('serviceCustom', 'e.g. the community mental health team') : ''), g.hint);
+      });
+      html += row('Options', togs(d.signpostToggles));
     }
     else if(st.outcome==='admin'){
-      html += row('Request', chips('adminType', [{v:'letter', l:'Private letter or report'},{v:'other', l:'Other'}]) + (st.adminType==='other' ? txt('adminCustom', 'e.g. Please contact the patient to confirm which pharmacy they use') : ''));
-      const t = st.adminType==='letter' ? [{k:'adminList', l:'Add to my admin list once agreed'}] : [];
-      html += row('Options', togs(t.concat([common[2]])));
+      html += row('Request', chips('adminType', d.adminOpts) + (st.adminType==='other' ? txt('adminCustom', 'e.g. Please contact the patient to confirm which pharmacy they use') : ''));
+      html += row('Options', togs(d.adminToggles));
     }
     else if(st.outcome==='done'){
-      html += row('Options', togs([{k:'addList', l:'Put it on my EMIS list'},{k:'complete', l:'Complete the case'},{k:'nosms', l:'No text to patient needed'}]));
+      html += row('Options', togs(d.doneToggles));
       html += row('Text for patient', txt('patientMsg', 'Optional: words for the team to text the patient'), 'Sent by the team');
     }
-    const shortcuts = String(S.noteShortcuts||'').split('|').map(s=>s.trim()).filter(Boolean);
-    const noteChips = shortcuts.length ? `<div class="chips">${shortcuts.map(n=>`<button type="button" class="chip${st.notes.trim()===n?' on':''}" data-note="${esc(n)}" aria-pressed="${st.notes.trim()===n}">${esc(n)}</button>`).join('')}</div>` : '';
-    html += row('Booking notes', noteChips + txt('notes', 'Optional: anything the team needs to know when booking'), 'Optional. Goes just above the sign-off');
+    html += row('Booking notes', noteChipsHtml() + txt('notes', 'Optional: anything the team needs to know when booking'), 'Optional. Goes just above the sign-off');
+    el.options.className = 'panel';
     el.options.innerHTML = html;
   }
 
+  /* ---------- Guided (beta): one decision at a time ---------- */
+  let mode = S.mode==='guided' ? 'guided' : 'panel';
+  let answered = new Set();
+  const labelOf = (opts, v) => (opts.find(o=>o.v===v)||{}).l || '';
+  const SHORT = {hub:'Hub', mhpCheck:'Address check', appResults:'NHS App results', smsBook:'Book & text date', fbSelf:'Self-book fallback', fbNext:'Next-slot fallback', fbResubmit:'New request OK', safety:'Safety-net', nosms:'No text', record:'Record on EMIS', upload:'Morning list', settled:'Complete if settled', confirm:'Confirm slot', comeback:'Come back if no help', explain:'Explain service', plink:'Text NHS link', adminList:'Admin list', addList:'EMIS list', complete:'Complete case'};
+  const onLabels = list => { const on = list.filter(t=>st[t.k]).map(t=>SHORT[t.k] || t.l); return on.length ? on.join(' · ') : 'None'; };
+  const TEXT_FOR = {reason:'custom', purpose:'other', check:'custom', service:'other', adminType:'other'};
+
+  function guidedSteps(){
+    const d = defs(); const s = [];
+    s.push({id:'outcome', q:'What should happen with this case?', short:'Outcome', kind:'single', key:'outcome', opts:OUTCOMES.map(o=>({v:o.id, l:o.label})), ans:OUTCOMES.find(o=>o.id===st.outcome).label});
+    if(st.outcome==='book'){
+      s.push({id:'who', q:'Who should the patient see?', short:'Who', kind:'single', key:'who', opts:d.whoOpts, ans:labelOf(d.whoOpts, st.who), sub:d.whoHint});
+      if(st.who==='named') s.push({id:'named', q:'Which doctor or ANP?', short:'Name', kind:'name', key:'named', roster:d.gpRoster, anyLabel:'', textKey:'namedCustom', ph:'Type the name, e.g. Dr Patel or Sam (ANP)', ans:namedName() || 'Not named yet'});
+      if(d.hasPerson) s.push({id:'person', q:'Anyone in particular?', short:'Name', kind:'name', key:'person', roster:d.personRoster, anyLabel:d.anyLabel, textKey:'personCustom', ph:'Optional: a specific person, e.g. a locum', ans:personName() || d.anyLabel, optional:true});
+      if(st.who==='me' || st.who==='named') s.push({id:'reason', q:'Why them? The team tells the patient this.', short:'Why them', kind:'single', key:'reason', opts:d.reasonOpts, textKey:'reasonCustom', ph:'e.g. they saw the patient last week', ans:st.reason==='custom' ? (st.reasonCustom.trim() || 'Other') : labelOf(d.reasonOpts, st.reason)});
+      if(d.purposeOpts) s.push({id:'purpose', q:'What is the appointment for?', short:'For', kind:'single', key:'purpose', opts:d.purposeOpts, textKey:'purposeCustom', ph:d.purposePh, ans:st.purpose==='other' ? (st.purposeCustom.trim() || 'Other') : labelOf(d.purposeOpts, st.purpose), optional:true});
+      if(d.showModality) s.push({id:'modality', q:'Face-to-face or telephone?', short:'Type', kind:'single', key:'modality', opts:d.modalityOpts, ans:labelOf(d.modalityOpts, st.modality)});
+      if(d.showUrgency) s.push({id:'urgency', q:'How soon?', short:'When', kind:'single', key:'urgency', opts:d.URG, ans:labelOf(d.URG, st.urgency)});
+      if(d.showUrgency && st.urgency==='day') s.push({id:'day', q:'Which day?', short:'Day', kind:'single', key:'day', opts:DAYS.map(x=>({v:x, l:x})), ans:dayOk(st.day)});
+      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.bookToggles, sub:d.optHint, ans:onLabels(d.bookToggles)});
+    }
+    else if(st.outcome==='mine'){
+      s.push({id:'list', q:'Which of your lists?', short:'List', kind:'single', key:'list', opts:d.listOpts, sub:d.listHint, ans:labelOf(d.listOpts, st.list)});
+      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.mineToggles, ans:onLabels(d.mineToggles)});
+    }
+    else if(st.outcome==='contact'){
+      s.push({id:'check', q:'What should the team ask the patient?', short:'Ask', kind:'single', key:'check', opts:d.checkOpts, textKey:'checkCustom', ph:'e.g. which side is the pain on, and any fever?', ans:st.check==='custom' ? (st.checkCustom.trim() || 'A specific question') : labelOf(d.checkOpts, st.check)});
+      s.push({id:'then', q:'If the problem is ongoing, what then?', short:'If ongoing', kind:'single', key:'then', opts:d.thenOpts, ans:labelOf(d.thenOpts, st.then)});
+      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.contactToggles, ans:onLabels(d.contactToggles)});
+    }
+    else if(st.outcome==='signpost'){
+      const all = d.serviceGroups.flatMap(g=>g.opts);
+      s.push({id:'service', q:'Which service?', short:'Service', kind:'groups', key:'service', groups:d.serviceGroups, textKey:'serviceCustom', ph:'e.g. the community mental health team', ans:st.service==='other' ? (st.serviceCustom.trim() || 'Other service') : labelOf(all, st.service)});
+      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.signpostToggles, ans:onLabels(d.signpostToggles)});
+    }
+    else if(st.outcome==='admin'){
+      s.push({id:'adminType', q:'What kind of request?', short:'Request', kind:'single', key:'adminType', opts:d.adminOpts, textKey:'adminCustom', ph:'e.g. Please contact the patient to confirm which pharmacy they use', ans:st.adminType==='other' ? (st.adminCustom.trim() || 'Other') : labelOf(d.adminOpts, st.adminType)});
+      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.adminToggles, ans:onLabels(d.adminToggles)});
+    }
+    else if(st.outcome==='done'){
+      s.push({id:'opts', q:'What should the team do?', short:'Team', kind:'multi', togs:d.doneToggles, ans:onLabels(d.doneToggles)});
+      s.push({id:'patientMsg', q:'Anything to text the patient?', short:'Text', kind:'text', key:'patientMsg', ph:'Optional: words for the team to text the patient', ans:st.patientMsg.trim() || 'Nothing', optional:true});
+    }
+    s.push({id:'notes', q:'Any booking notes?', short:'Notes', kind:'notes', ans:st.notes.trim() || 'None', optional:true});
+    return s;
+  }
+
+  function stepHtml(s, n, total){
+    const sa = ` data-step="${s.id}"`;
+    let body = '', needNext = false;
+    if(s.kind==='single'){
+      body = chips(s.key, s.opts, sa);
+      if(s.textKey && st[s.key]===TEXT_FOR[s.key]){ body += txt(s.textKey, s.ph); needNext = true; }
+    } else if(s.kind==='name'){
+      body = (s.roster.length ? nameChips(s.key, s.roster, s.anyLabel || 'Choose', sa) : '') + txt(s.textKey, s.ph); needNext = true;
+    } else if(s.kind==='multi'){
+      body = togs(s.togs); needNext = true;
+    } else if(s.kind==='groups'){
+      body = s.groups.map(g => `<div class="ggrp">${esc(g.l)}</div>` + chips(s.key, g.opts, sa)).join('');
+      if(st[s.key]===TEXT_FOR[s.key]){ body += txt(s.textKey, s.ph); needNext = true; }
+    } else if(s.kind==='text'){
+      body = txt(s.key, s.ph); needNext = true;
+    } else if(s.kind==='notes'){
+      body = noteChipsHtml() + txt('notes', 'Optional: anything the team needs to know when booking'); needNext = true;
+    }
+    const nextLabel = s.kind==='multi' ? 'Done' : 'Next';
+    const act = needNext ? `<div class="gact"><button type="button" class="btn-sm" data-done="${s.id}">${nextLabel}</button>${s.optional ? `<button type="button" class="btn-link" data-done="${s.id}">Skip</button>` : ''}</div>` : '';
+    return `<section class="gstep"${sa}><div class="gn">STEP ${n} OF ${total}</div><h3>${esc(s.q)}</h3>${s.sub ? `<p class="gsub">${esc(s.sub)}</p>` : ''}<div class="rc">${body}</div>${act}</section>`;
+  }
+  const doneHtml = s => `<button type="button" class="gdone" data-reopen="${s.id}"><span class="gql">${esc(s.short)}</span><span class="gans"><b>${esc(s.ans)}</b></span><span class="gedit">Change</span></button>`;
+  const readyHtml = () => `<section class="gready"><div><h3>Ready to copy</h3><p>Check the message, then copy. Click any answer above to change it.</p></div><div class="gact" style="margin:0"><button type="button" class="btn-sm" data-copy>Copy message</button><button type="button" class="btn-link" data-restart>Start again</button></div></section>`;
+
+  function renderGuided(){
+    const steps = guidedSteps();
+    const cur = steps.find(x => !answered.has(x.id));
+    let html = '';
+    steps.forEach((s, i) => {
+      if(s===cur) html += stepHtml(s, i+1, steps.length);
+      else if(answered.has(s.id)) html += doneHtml(s);
+    });
+    if(!cur) html += readyHtml();
+    el.options.className = 'panel guided';
+    el.options.innerHTML = html;
+  }
+  function renderPanel(){ if(mode==='guided') renderGuided(); else renderOptions(); }
+  function applyMode(){
+    document.querySelectorAll('#modeSeg [data-mode]').forEach(b => { const on = b.dataset.mode===mode; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    $('#outcomeBlock').hidden = mode==='guided';
+  }
+
+  let pulseTimer = null;
   function update(){
     const r = compose();
+    const changed = el.msg.value !== r.text;
     el.msg.value = r.text;
     edited = false; el.regen.hidden = true;
     paintCount(r);
+    if(changed && mode==='guided'){
+      const card = el.msg.closest('.card');
+      card.classList.add('pulse'); clearTimeout(pulseTimer);
+      pulseTimer = setTimeout(() => card.classList.remove('pulse'), 450);
+    }
   }
   function paintCount(r){
     const n = el.msg.value.length, limit = r ? r.limit : (+S.limit || 500);
@@ -776,29 +944,48 @@
     else if(r && r.compacted) el.note.textContent = 'Shortened automatically to fit the Klinik limit.';
     else el.note.textContent = '';
   }
-  function renderAll(){ renderOutcomes(); renderOptions(); update(); }
+  function renderAll(){ renderOutcomes(); applyMode(); renderPanel(); update(); }
 
   /* ---------- events ---------- */
+  $('#modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('[data-mode]'); if(!b) return;
+    mode = b.dataset.mode; S.mode = mode; saveS();
+    if(mode==='guided') answered = new Set(guidedSteps().map(x => x.id));
+    renderAll();
+  });
   el.presets.addEventListener('click', e => {
     const b = e.target.closest('[data-p]'); if(!b) return;
     const p = PRESETS[+b.dataset.p];
     st = Object.assign(fresh(p.o), p.s);
     if(p.o==='book' && p.s.urgency==='day') st.day = dayOk(S.myDay);
+    answered = new Set(guidedSteps().map(x => x.id));
     renderAll();
     el.presets.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c===b));
   });
   el.outcomes.addEventListener('click', e => {
     const b = e.target.closest('[data-o]'); if(!b) return;
     st = fresh(b.dataset.o);
+    answered = new Set(['outcome']);
     el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
     renderAll();
   });
   el.options.addEventListener('click', e => {
+    const done = e.target.closest('[data-done]');
+    if(done){ answered.add(done.dataset.done); renderPanel(); update(); return; }
+    const reopen = e.target.closest('[data-reopen]');
+    if(reopen){ answered.delete(reopen.dataset.reopen); renderPanel(); return; }
+    if(e.target.closest('[data-copy]')){ copy(); return; }
+    if(e.target.closest('[data-restart]')){ st = fresh('book'); answered = new Set(); el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); renderAll(); return; }
     const note = e.target.closest('[data-note]');
-    if(note){ st.notes = st.notes.trim()===note.dataset.note ? '' : note.dataset.note; renderOptions(); update(); return; }
+    if(note){ st.notes = st.notes.trim()===note.dataset.note ? '' : note.dataset.note; if(mode==='guided' && st.notes) answered.add('notes'); renderPanel(); update(); return; }
     const chip = e.target.closest('[data-k]');
     if(chip){
       const k = chip.dataset.k, v = chip.dataset.v;
+      if(k==='outcome'){
+        st = fresh(v); answered = new Set(['outcome']);
+        el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+        renderAll(); return;
+      }
       st[k] = v;
       if(k==='who'){ st.person=''; st.personCustom=''; st.named=''; st.namedCustom=''; st.reason='none'; st.purpose='none';
         if(v==='phleb'){ st.hub=true; st.safety=false; }
@@ -814,8 +1001,9 @@
       if(k==='person') st.personCustom='';
       if(k==='modality' && v==='tel' && st.who==='anygp') st.who='anydr';
       if(k==='service'){ const svc = SERVICE(v); st.safety = !!S.safetyDefault && (svc ? svc.safety : v!=='nhsapp'); st.comeback = svc ? svc.comeback : true; }
+      if(mode==='guided' && chip.dataset.step && TEXT_FOR[k]!==v) answered.add(chip.dataset.step);
       el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-      renderOptions(); update();
+      renderPanel(); update();
       return;
     }
     const tog = e.target.closest('[data-t]');
@@ -823,8 +1011,14 @@
       const k = tog.dataset.t; st[k] = !st[k];
       if(k==='smsBook' && st.smsBook) st.nosms = false;
       if(k==='nosms' && st.nosms) st.smsBook = false;
-      renderOptions(); update();
+      renderPanel(); update();
     }
+  });
+  el.options.addEventListener('keydown', e => {
+    if(e.key!=='Enter' || mode!=='guided') return;
+    const inp = e.target.closest('[data-x]'); if(!inp) return;
+    const stepEl = inp.closest('[data-step]'); if(!stepEl) return;
+    e.preventDefault(); answered.add(stepEl.dataset.step); renderPanel(); update();
   });
   el.options.addEventListener('input', e => {
     const i = e.target.closest('[data-x]'); if(!i) return;
@@ -862,7 +1056,7 @@
       S[k] = i.type==='number' ? (+i.value || DEFAULT_S.limit) : i.value;
       saveS();
       if(k==='myDay' && st.urgency==='day') st.day = dayOk(S.myDay);
-      renderOptions(); update();
+      renderPanel(); update();
     });
   });
   const stogs = $('#s-togs');
@@ -879,6 +1073,7 @@
   /* first paint: the most common message, ready to copy */
   renderPresets();
   st = Object.assign(fresh('book'), PRESETS[0].s);
+  answered = new Set(guidedSteps().map(x => x.id));
   renderAll();
   el.presets.querySelector('.chip').classList.add('on');
 })();
