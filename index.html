@@ -193,8 +193,11 @@
   .gpill{border:1px solid var(--line);background:var(--surface-3);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--text-2);transition:border-color .12s}
   .gpill b{color:var(--text);font-weight:500}
   .gpill:hover{border-color:var(--accent-line);color:var(--accent)}
-  .gdone-flash{animation:flash .5s}
-  @keyframes flash{from{background:var(--ok-soft)}to{background:transparent}}
+  .gcopied{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--ok-soft);border:1px solid var(--ok);color:var(--ok);border-radius:10px;padding:10px 10px 10px 14px;margin:0 0 14px;font-weight:600;animation:dropIn .22s cubic-bezier(.2,.7,.2,1)}
+  .gcopied .btn-sm{background:var(--ok);color:#fff}
+  @keyframes dropIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .gfoot{margin-top:14px;text-align:right}
+  .gfoot .btn-link{font-size:12px;color:var(--text-2);opacity:.8}
   .card.pulse{box-shadow:0 0 0 3px var(--accent-soft),var(--shadow);transition:box-shadow .15s}
   .card{transition:box-shadow .5s}
   @media (prefers-reduced-motion: reduce){ .stage.in-fwd,.stage.in-back{animation:none} .gprog i{transition:none} }
@@ -903,7 +906,8 @@
     return s;
   }
 
-  let navDir = 'fwd', lastStage = null;
+  let navDir = 'fwd', lastStage = null, stageAt = 0;
+  const GUARD_MS = 400; /* ignore taps this soon after a screen change, so a double-tap cannot answer the next question */
   const KEYS = ['1','2','3','4','5','6','7','8','9','0'];
   const gopts = (key, opts, stepId) => `<div class="gopts${opts.length>6 ? ' cols' : ''}">${opts.map((o,i)=>`<button type="button" class="gopt${st[key]===o.v?' on':''}${o.tone?' t-'+o.tone:''}" data-k="${key}" data-v="${esc(o.v)}" data-step="${stepId}" aria-pressed="${st[key]===o.v}"><span class="gkey">${KEYS[i]||''}</span><span class="gl">${esc(o.l)}</span>${o.tone?'<i class="dot"></i>':''}</button>`).join('')}</div>`;
 
@@ -937,6 +941,7 @@
     const total = steps.length;
     const stageId = cur ? cur.id : '__final';
     const anim = stageId===lastStage ? '' : ` in-${navDir}`;
+    if(stageId!==lastStage) stageAt = performance.now();
     lastStage = stageId;
     const back = (cur && idx===0) ? '' : `<button type="button" class="btn-link" data-back>Back</button>`;
     let html;
@@ -945,7 +950,7 @@
       html = `<div class="stage${anim}" data-step="${cur.id}"><div class="gprog"><i style="width:${pct}%"></i></div><div class="gmeta"><span>Question ${idx+1} of ${total}</span>${back}</div><h3 class="gq">${esc(cur.q)}</h3>${cur.sub ? `<p class="gsub">${esc(cur.sub)}</p>` : ''}${stageBody(cur)}</div>`;
     } else {
       const pills = steps.map(s => `<button type="button" class="gpill" data-reopen="${s.id}" title="Change">${esc(s.short)}: <b>${esc(s.ans)}</b></button>`).join('');
-      html = `<div class="stage${anim}"><div class="gprog"><i style="width:100%"></i></div><div class="gmeta"><span>Your message</span>${back}</div><h3 class="gq">Copy this into Klinik</h3><div class="gmsg"><textarea id="gmsg" spellcheck="false" aria-label="Generated message"></textarea><div class="gcount" id="gcount"></div></div><div class="gact"><button type="button" class="btn-sm" data-copy>Copy message</button><button type="button" class="btn-sec" data-next>Next case</button></div><div class="gsummary">${pills}</div></div>`;
+      html = `<div class="stage${anim}"><div class="gprog"><i style="width:100%"></i></div><div class="gcopied" id="gcopied" hidden><span>Copied. Paste it into Klinik, then:</span><button type="button" class="btn-sm" data-next>Next case &rarr;</button></div><div class="gmeta"><span>Your message</span>${back}</div><h3 class="gq">Copy this into Klinik</h3><div class="gmsg"><textarea id="gmsg" spellcheck="false" aria-label="Generated message"></textarea><div class="gcount" id="gcount"></div></div><div class="gact"><button type="button" class="btn-sm" data-copy>Copy message</button></div><div class="gsummary">${pills}</div><div class="gfoot"><button type="button" class="btn-link" data-next>Start over without copying</button></div></div>`;
     }
     el.options.className = 'panel guided';
     el.options.innerHTML = html;
@@ -1024,6 +1029,7 @@
     renderAll();
   });
   el.options.addEventListener('click', e => {
+    if(mode==='guided' && e.isTrusted && performance.now() - stageAt < GUARD_MS && !e.target.closest('[data-back]')) return;
     const done = e.target.closest('[data-done]');
     if(done){ answered.add(done.dataset.done); navDir = 'fwd'; renderPanel(); update(); return; }
     const reopen = e.target.closest('[data-reopen]');
@@ -1103,6 +1109,7 @@
     try { await navigator.clipboard.writeText(t); ok = true; } catch(e){}
     if(!ok){ try { el.msg.focus(); el.msg.select(); ok = document.execCommand('copy'); el.msg.setSelectionRange(0,0); } catch(e){} }
     [el.copy, el.copy2, ...document.querySelectorAll('[data-copy]')].forEach(b => { b.textContent = ok ? 'Copied' : 'Select and copy manually'; b.classList.toggle('done', ok); setTimeout(()=>{ b.textContent='Copy message'; b.classList.remove('done'); }, 1600); });
+    const banner = $('#gcopied'); if(banner && ok){ banner.hidden = false; stageAt = performance.now(); }
   }
   el.copy.addEventListener('click', copy);
   el.copy2.addEventListener('click', copy);
