@@ -146,32 +146,59 @@
   .seg.mode button{padding:6px 12px;font-size:13px}
   .seg.mode em{font-style:normal;font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.75;margin-left:4px}
 
-  /* Guided mode: one decision at a time, answered steps become a compact trail */
-  .panel.guided{padding:10px 18px 14px;display:grid;gap:8px}
-  .gdone{display:grid;grid-template-columns:118px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:transparent;padding:6px 4px;border-radius:8px;color:var(--text-2)}
-  .gdone:hover{background:var(--surface-3)}
-  .gdone .gql{font-size:12px;font-weight:600;letter-spacing:.02em}
-  .gdone .gans{display:inline-flex;align-items:center;gap:6px;color:var(--text);font-size:14px;min-width:0}
-  .gdone .gans b{font-weight:500;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-  .gdone .gedit{font-size:12px;color:var(--text-2);opacity:0;transition:opacity .12s}
-  .gdone:hover .gedit,.gdone:focus-visible .gedit{opacity:1}
-  .gstep{border-left:3px solid var(--accent);background:var(--surface-3);border-radius:0 10px 10px 0;padding:14px 16px 16px;margin:6px 0 4px;animation:gin .18s ease-out}
-  @keyframes gin{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
-  .gstep .gn{font-family:var(--mono);font-size:11px;color:var(--text-2);letter-spacing:.04em}
-  .gstep h3{font-family:var(--display);font-weight:600;font-size:18px;margin:2px 0 12px;text-wrap:balance}
-  .gstep .gsub{font-size:12px;color:var(--text-2);margin:-8px 0 12px}
-  .gstep .rc{display:flex;flex-direction:column;gap:10px}
-  .gstep .ggrp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600;margin:4px 0 -4px}
-  .gact{display:flex;gap:8px;margin-top:12px;align-items:center}
-  .btn-sm{border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:8px 14px;font-weight:600;font-size:14px}
-  .btn-link{border:0;background:transparent;color:var(--text-2);padding:8px 6px;font-size:13px;text-decoration:underline;text-underline-offset:3px}
-  .gready{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:6px}
-  .gready h3{font-family:var(--display);font-size:17px;margin:0 0 2px;color:var(--accent)}
-  .gready p{margin:0;font-size:13px;color:var(--text-2)}
+  /* Guided mode: one question per screen, then the message */
+  .guided-mode .quick,.guided-mode #outcomeBlock,.guided-mode .preview,.guided-mode .mobilebar{display:none!important}
+  .guided-mode .work{grid-template-columns:minmax(0,1fr);max-width:720px;margin:0 auto}
+  .guided-mode .top,.guided-mode .foot{max-width:720px;margin-left:auto;margin-right:auto}
+  .panel.guided{background:transparent;border:0;padding:0;display:block}
+  .stage{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px 26px 26px;will-change:transform,opacity}
+  .stage.in-fwd{animation:slideFwd .24s cubic-bezier(.2,.7,.2,1)}
+  .stage.in-back{animation:slideBack .24s cubic-bezier(.2,.7,.2,1)}
+  @keyframes slideFwd{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+  @keyframes slideBack{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}
+  .gprog{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin:-6px 0 16px}
+  .gprog i{display:block;height:100%;background:var(--accent);transition:width .35s cubic-bezier(.2,.7,.2,1)}
+  .gmeta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-2);letter-spacing:.06em;text-transform:uppercase;font-weight:600;min-height:28px}
+  .gq{font-family:var(--display);font-weight:600;font-size:24px;line-height:1.2;margin:6px 0 18px;text-wrap:balance}
+  .gsub{font-size:13px;color:var(--text-2);margin:-10px 0 16px}
+  .gopts{display:grid;gap:8px}
+  .gopts.cols{grid-template-columns:1fr 1fr}
+  .gopt{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;font-size:15px;text-align:left;transition:border-color .12s,background .12s,transform .08s}
+  .gopt:hover{border-color:var(--accent-line);background:var(--surface-3)}
+  .gopt:active{transform:scale(.985)}
+  .gopt.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:500}
+  .gopt .gl{flex:1;min-width:0}
+  .gopt .gkey{font-family:var(--mono);font-size:11px;color:var(--text-2);border:1px solid var(--line);border-radius:5px;padding:1px 0;min-width:22px;text-align:center;flex:none}
+  .gopt.on .gkey{border-color:var(--accent-line);color:var(--accent)}
+  .gopt .dot{width:9px;height:9px;border-radius:50%;background:var(--line-2);flex:none}
+  .gopt.t-crit .dot{background:var(--crit)} .gopt.t-warn .dot{background:var(--warn)} .gopt.t-ok .dot{background:var(--ok)}
+  .ggrp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600;margin:12px 0 6px}
+  .ggrp:first-child{margin-top:0}
+  .stage .txt{max-width:none;padding:11px 12px;font-size:15px;margin-top:10px}
+  .stage .togs{display:grid;gap:4px}
+  .stage .tog{padding:9px 6px;font-size:15px;border-radius:8px}
+  .stage .tog:hover{background:var(--surface-3)}
+  .gact{display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap}
+  .btn-sm{border:0;background:var(--accent);color:var(--accent-ink);border-radius:9px;padding:10px 18px;font-weight:600;font-size:15px;transition:transform .08s}
+  .btn-sm:active{transform:scale(.97)}
+  .btn-sm.done{background:var(--ok);color:#fff}
+  .btn-sec{border:1px solid var(--line-2);background:var(--surface);color:var(--text);border-radius:9px;padding:10px 18px;font-weight:600;font-size:15px}
+  .btn-sec:hover{background:var(--surface-3)}
+  .btn-link{border:0;background:transparent;color:var(--text-2);padding:6px 4px;font-size:13px;text-decoration:underline;text-underline-offset:3px;letter-spacing:0;text-transform:none;font-weight:500}
+  .gmsg textarea{display:block;width:100%;min-height:220px;border:1px solid var(--line);background:var(--surface-3);border-radius:10px;padding:14px 16px;line-height:1.55;font-size:15px;resize:vertical}
+  .gmsg textarea:focus{outline:none;border-color:var(--accent)}
+  .gcount{font-family:var(--mono);font-size:12px;color:var(--text-2);margin-top:8px;font-variant-numeric:tabular-nums}
+  .gcount.over{color:var(--crit)}
+  .gsummary{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+  .gpill{border:1px solid var(--line);background:var(--surface-3);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--text-2);transition:border-color .12s}
+  .gpill b{color:var(--text);font-weight:500}
+  .gpill:hover{border-color:var(--accent-line);color:var(--accent)}
+  .gdone-flash{animation:flash .5s}
+  @keyframes flash{from{background:var(--ok-soft)}to{background:transparent}}
   .card.pulse{box-shadow:0 0 0 3px var(--accent-soft),var(--shadow);transition:box-shadow .15s}
   .card{transition:box-shadow .5s}
-  @media (prefers-reduced-motion: reduce){ .gstep{animation:none} }
-  @media (max-width:900px){ .gdone{grid-template-columns:1fr auto} .gdone .gql{grid-column:1/-1} }
+  @media (prefers-reduced-motion: reduce){ .stage.in-fwd,.stage.in-back{animation:none} .gprog i{transition:none} }
+  @media (max-width:600px){ .gopts.cols{grid-template-columns:1fr} .stage{padding:18px 16px 20px} .gq{font-size:21px} }
 
   /* Mobile */
   .mobilebar{display:none}
@@ -876,18 +903,22 @@
     return s;
   }
 
-  function stepHtml(s, n, total){
-    const sa = ` data-step="${s.id}"`;
+  let navDir = 'fwd', lastStage = null;
+  const KEYS = ['1','2','3','4','5','6','7','8','9','0'];
+  const gopts = (key, opts, stepId) => `<div class="gopts${opts.length>6 ? ' cols' : ''}">${opts.map((o,i)=>`<button type="button" class="gopt${st[key]===o.v?' on':''}${o.tone?' t-'+o.tone:''}" data-k="${key}" data-v="${esc(o.v)}" data-step="${stepId}" aria-pressed="${st[key]===o.v}"><span class="gkey">${KEYS[i]||''}</span><span class="gl">${esc(o.l)}</span>${o.tone?'<i class="dot"></i>':''}</button>`).join('')}</div>`;
+
+  function stageBody(s){
     let body = '', needNext = false;
     if(s.kind==='single'){
-      body = chips(s.key, s.opts, sa);
+      body = gopts(s.key, s.opts, s.id);
       if(s.textKey && st[s.key]===TEXT_FOR[s.key]){ body += txt(s.textKey, s.ph); needNext = true; }
     } else if(s.kind==='name'){
-      body = (s.roster.length ? nameChips(s.key, s.roster, s.anyLabel || 'Choose', sa) : '') + txt(s.textKey, s.ph); needNext = true;
+      const list = (s.anyLabel ? [{v:'', l:s.anyLabel}] : []).concat(s.roster.map(n=>({v:n, l:n})));
+      body = (list.length ? gopts(s.key, list, s.id) : '') + txt(s.textKey, s.ph); needNext = true;
     } else if(s.kind==='multi'){
       body = togs(s.togs); needNext = true;
     } else if(s.kind==='groups'){
-      body = s.groups.map(g => `<div class="ggrp">${esc(g.l)}</div>` + chips(s.key, g.opts, sa)).join('');
+      body = s.groups.map(g => `<div class="ggrp">${esc(g.l)}</div>` + gopts(s.key, g.opts, s.id)).join('');
       if(st[s.key]===TEXT_FOR[s.key]){ body += txt(s.textKey, s.ph); needNext = true; }
     } else if(s.kind==='text'){
       body = txt(s.key, s.ph); needNext = true;
@@ -896,26 +927,46 @@
     }
     const nextLabel = s.kind==='multi' ? 'Done' : 'Next';
     const act = needNext ? `<div class="gact"><button type="button" class="btn-sm" data-done="${s.id}">${nextLabel}</button>${s.optional ? `<button type="button" class="btn-link" data-done="${s.id}">Skip</button>` : ''}</div>` : '';
-    return `<section class="gstep"${sa}><div class="gn">STEP ${n} OF ${total}</div><h3>${esc(s.q)}</h3>${s.sub ? `<p class="gsub">${esc(s.sub)}</p>` : ''}<div class="rc">${body}</div>${act}</section>`;
+    return body + act;
   }
-  const doneHtml = s => `<button type="button" class="gdone" data-reopen="${s.id}"><span class="gql">${esc(s.short)}</span><span class="gans"><b>${esc(s.ans)}</b></span><span class="gedit">Change</span></button>`;
-  const readyHtml = () => `<section class="gready"><div><h3>Ready to copy</h3><p>Check the message, then copy. Click any answer above to change it.</p></div><div class="gact" style="margin:0"><button type="button" class="btn-sm" data-copy>Copy message</button><button type="button" class="btn-link" data-restart>Start again</button></div></section>`;
 
   function renderGuided(){
     const steps = guidedSteps();
-    const cur = steps.find(x => !answered.has(x.id));
-    let html = '';
-    steps.forEach((s, i) => {
-      if(s===cur) html += stepHtml(s, i+1, steps.length);
-      else if(answered.has(s.id)) html += doneHtml(s);
-    });
-    if(!cur) html += readyHtml();
+    const idx = steps.findIndex(x => !answered.has(x.id));
+    const cur = idx>=0 ? steps[idx] : null;
+    const total = steps.length;
+    const stageId = cur ? cur.id : '__final';
+    const anim = stageId===lastStage ? '' : ` in-${navDir}`;
+    lastStage = stageId;
+    const back = (cur && idx===0) ? '' : `<button type="button" class="btn-link" data-back>Back</button>`;
+    let html;
+    if(cur){
+      const pct = Math.max(4, Math.round(idx / total * 100));
+      html = `<div class="stage${anim}" data-step="${cur.id}"><div class="gprog"><i style="width:${pct}%"></i></div><div class="gmeta"><span>Question ${idx+1} of ${total}</span>${back}</div><h3 class="gq">${esc(cur.q)}</h3>${cur.sub ? `<p class="gsub">${esc(cur.sub)}</p>` : ''}${stageBody(cur)}</div>`;
+    } else {
+      const pills = steps.map(s => `<button type="button" class="gpill" data-reopen="${s.id}" title="Change">${esc(s.short)}: <b>${esc(s.ans)}</b></button>`).join('');
+      html = `<div class="stage${anim}"><div class="gprog"><i style="width:100%"></i></div><div class="gmeta"><span>Your message</span>${back}</div><h3 class="gq">Copy this into Klinik</h3><div class="gmsg"><textarea id="gmsg" spellcheck="false" aria-label="Generated message"></textarea><div class="gcount" id="gcount"></div></div><div class="gact"><button type="button" class="btn-sm" data-copy>Copy message</button><button type="button" class="btn-sec" data-next>Next case</button></div><div class="gsummary">${pills}</div></div>`;
+    }
     el.options.className = 'panel guided';
     el.options.innerHTML = html;
+    if(cur){
+      if(cur.kind==='text' || cur.kind==='notes' || cur.kind==='name'){ const inp = el.options.querySelector('input.txt'); if(inp) inp.focus({preventScroll:true}); }
+    } else {
+      const g = $('#gmsg'); g.value = el.msg.value;
+      paintCount(null);
+    }
+    if(window.scrollY > 120) window.scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+  }
+  function goBack(){
+    const steps = guidedSteps();
+    let idx = steps.findIndex(x => !answered.has(x.id)); if(idx<0) idx = steps.length;
+    for(let i=idx-1; i>=0; i--){ if(answered.has(steps[i].id)){ answered.delete(steps[i].id); break; } }
+    navDir = 'back'; renderPanel();
   }
   function renderPanel(){ if(mode==='guided') renderGuided(); else renderOptions(); }
   function applyMode(){
     document.querySelectorAll('#modeSeg [data-mode]').forEach(b => { const on = b.dataset.mode===mode; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    document.body.classList.toggle('guided-mode', mode==='guided');
     $('#outcomeBlock').hidden = mode==='guided';
   }
 
@@ -924,6 +975,7 @@
     const r = compose();
     const changed = el.msg.value !== r.text;
     el.msg.value = r.text;
+    const g = $('#gmsg'); if(g) g.value = r.text;
     edited = false; el.regen.hidden = true;
     paintCount(r);
     if(changed && mode==='guided'){
@@ -943,6 +995,8 @@
     if(over) el.note.textContent = `Over the Klinik limit by ${n - limit} characters. Switch off an option or trim the text.`;
     else if(r && r.compacted) el.note.textContent = 'Shortened automatically to fit the Klinik limit.';
     else el.note.textContent = '';
+    const gc = $('#gcount');
+    if(gc){ gc.textContent = label + (over ? ` - over the Klinik limit by ${n - limit}, trim the text` : (r && r.compacted) ? ' - shortened to fit' : ''); gc.classList.toggle('over', over); }
   }
   function renderAll(){ renderOutcomes(); applyMode(); renderPanel(); update(); }
 
@@ -950,7 +1004,7 @@
   $('#modeSeg').addEventListener('click', e => {
     const b = e.target.closest('[data-mode]'); if(!b) return;
     mode = b.dataset.mode; S.mode = mode; saveS();
-    if(mode==='guided') answered = new Set(guidedSteps().map(x => x.id));
+    if(mode==='guided'){ st = fresh('book'); answered = new Set(); navDir = 'fwd'; lastStage = null; el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); }
     renderAll();
   });
   el.presets.addEventListener('click', e => {
@@ -971,13 +1025,14 @@
   });
   el.options.addEventListener('click', e => {
     const done = e.target.closest('[data-done]');
-    if(done){ answered.add(done.dataset.done); renderPanel(); update(); return; }
+    if(done){ answered.add(done.dataset.done); navDir = 'fwd'; renderPanel(); update(); return; }
     const reopen = e.target.closest('[data-reopen]');
-    if(reopen){ answered.delete(reopen.dataset.reopen); renderPanel(); return; }
+    if(reopen){ answered.delete(reopen.dataset.reopen); navDir = 'back'; renderPanel(); return; }
+    if(e.target.closest('[data-back]')){ goBack(); return; }
     if(e.target.closest('[data-copy]')){ copy(); return; }
-    if(e.target.closest('[data-restart]')){ st = fresh('book'); answered = new Set(); el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); renderAll(); return; }
+    if(e.target.closest('[data-next]') || e.target.closest('[data-restart]')){ st = fresh('book'); answered = new Set(); navDir = 'fwd'; el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); renderAll(); return; }
     const note = e.target.closest('[data-note]');
-    if(note){ st.notes = st.notes.trim()===note.dataset.note ? '' : note.dataset.note; if(mode==='guided' && st.notes) answered.add('notes'); renderPanel(); update(); return; }
+    if(note){ st.notes = st.notes.trim()===note.dataset.note ? '' : note.dataset.note; if(mode==='guided' && st.notes){ answered.add('notes'); navDir = 'fwd'; } renderPanel(); update(); return; }
     const chip = e.target.closest('[data-k]');
     if(chip){
       const k = chip.dataset.k, v = chip.dataset.v;
@@ -1001,7 +1056,7 @@
       if(k==='person') st.personCustom='';
       if(k==='modality' && v==='tel' && st.who==='anygp') st.who='anydr';
       if(k==='service'){ const svc = SERVICE(v); st.safety = !!S.safetyDefault && (svc ? svc.safety : v!=='nhsapp'); st.comeback = svc ? svc.comeback : true; }
-      if(mode==='guided' && chip.dataset.step && TEXT_FOR[k]!==v) answered.add(chip.dataset.step);
+      if(mode==='guided' && chip.dataset.step && TEXT_FOR[k]!==v){ answered.add(chip.dataset.step); navDir = 'fwd'; }
       el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
       renderPanel(); update();
       return;
@@ -1018,7 +1073,18 @@
     if(e.key!=='Enter' || mode!=='guided') return;
     const inp = e.target.closest('[data-x]'); if(!inp) return;
     const stepEl = inp.closest('[data-step]'); if(!stepEl) return;
-    e.preventDefault(); answered.add(stepEl.dataset.step); renderPanel(); update();
+    e.preventDefault(); answered.add(stepEl.dataset.step); navDir = 'fwd'; renderPanel(); update();
+  });
+  el.options.addEventListener('input', e => {
+    const g = e.target.closest('#gmsg'); if(!g) return;
+    el.msg.value = g.value; edited = true; el.regen.hidden = false; paintCount(null);
+  });
+  document.addEventListener('keydown', e => {
+    if(mode!=='guided' || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target; if(t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA')) return;
+    const i = KEYS.indexOf(e.key); if(i<0) return;
+    const opts = el.options.querySelectorAll('.stage .gopt');
+    if(opts[i]){ e.preventDefault(); opts[i].click(); }
   });
   el.options.addEventListener('input', e => {
     const i = e.target.closest('[data-x]'); if(!i) return;
@@ -1036,7 +1102,7 @@
     let ok = false;
     try { await navigator.clipboard.writeText(t); ok = true; } catch(e){}
     if(!ok){ try { el.msg.focus(); el.msg.select(); ok = document.execCommand('copy'); el.msg.setSelectionRange(0,0); } catch(e){} }
-    [el.copy, el.copy2].forEach(b => { b.textContent = ok ? 'Copied' : 'Select and copy manually'; b.classList.toggle('done', ok); setTimeout(()=>{ b.textContent='Copy message'; b.classList.remove('done'); }, 1600); });
+    [el.copy, el.copy2, ...document.querySelectorAll('[data-copy]')].forEach(b => { b.textContent = ok ? 'Copied' : 'Select and copy manually'; b.classList.toggle('done', ok); setTimeout(()=>{ b.textContent='Copy message'; b.classList.remove('done'); }, 1600); });
   }
   el.copy.addEventListener('click', copy);
   el.copy2.addEventListener('click', copy);
@@ -1072,10 +1138,8 @@
 
   /* first paint: the most common message, ready to copy */
   renderPresets();
-  st = Object.assign(fresh('book'), PRESETS[0].s);
-  answered = new Set(guidedSteps().map(x => x.id));
-  renderAll();
-  el.presets.querySelector('.chip').classList.add('on');
+  if(mode==='guided'){ st = fresh('book'); answered = new Set(); renderAll(); }
+  else { st = Object.assign(fresh('book'), PRESETS[0].s); renderAll(); el.presets.querySelector('.chip').classList.add('on'); }
 })();
 </script>
 </body>
