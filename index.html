@@ -172,8 +172,13 @@
   .gopt.on .gkey{border-color:var(--accent-line);color:var(--accent)}
   .gopt .dot{width:9px;height:9px;border-radius:50%;background:var(--line-2);flex:none}
   .gopt.t-crit .dot{background:var(--crit)} .gopt.t-warn .dot{background:var(--warn)} .gopt.t-ok .dot{background:var(--ok)}
-  .ggrp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600;margin:12px 0 6px}
+  .ggrp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600;margin:16px 0 8px}
   .ggrp:first-child{margin-top:0}
+  .stage .chips .chip{padding:9px 14px;font-size:14.5px}
+  .tchip .tick{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line-2);display:inline-flex;align-items:center;justify-content:center;font-size:11px;line-height:1;flex:none;transition:background .12s,border-color .12s}
+  .tchip.on .tick{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .tchip.on .tick::after{content:"\2713"}
+  .tchip:not(.on){color:var(--text-2)}
   .stage .txt{max-width:none;padding:11px 12px;font-size:15px;margin-top:10px}
   .stage .togs{display:grid;gap:4px}
   .stage .tog{padding:9px 6px;font-size:15px;border-radius:8px}
@@ -388,7 +393,7 @@
       who:'anygp', named:'', namedCustom:'', person:'', personCustom:'', reason:'none', reasonCustom:'',
       modality:'f2f', urgency:'soonest', day:dayOk(S.myDay), hub:false,
       purpose:'none', purposeCustom:'', appResults:false,
-      fbSelf:true, fbNext:false, fbResubmit:false, smsBook:true, mhpCheck:true,
+      fb:'self', fbResubmit:false, smsBook:true, mhpCheck:true, photos:'no',
       safety: outcome==='book' || outcome==='contact' || outcome==='signpost' ? !!S.safetyDefault : false,
       nosms: outcome==='mine', record:false,
       list:'PM', upload:true,
@@ -518,6 +523,11 @@
   };
   const tidy = s => { s = String(s||'').trim(); if(!s) return ''; return /[.!?]$/.test(s) ? s : s + '.'; };
   const namedName = () => (st.named || st.namedCustom || '').trim();
+  /* NHS App self-booking is only offered for a face-to-face with a doctor (and a phone call with a doctor, which needs no fallback) */
+  const appAvail = () => ['anygp','anydr','me','named'].includes(st.who) && st.modality!=='tel' && st.purpose==='none';
+  const effFb = () => { let f = st.fb || 'self'; if(!appAvail() && (f==='self' || f==='both')) f = 'next'; return f; };
+  /* Photos are requested ahead of a telephone consultation with a doctor */
+  const photosAvail = () => ['anygp','anydr','me','named'].includes(st.who) && st.modality==='tel';
   const personName = () => (st.person || st.personCustom || '').trim();
 
   function whoPhrase(){
@@ -600,12 +610,14 @@
         }
         if((st.who==='me' || st.who==='named') && st.reason!=='none') add(reasonSentence(), null, 3);
         if(st.purpose==='results' && st.appResults) add('Please let the patient know the results can be viewed in the NHS App before the call.', 'Results are viewable in the NHS App before the call.', 2);
+        if(photosAvail() && st.photos==='yes') add('Please ask the patient to send in photos of the problem before the call.', 'Ask the patient to send photos before the call.', 4);
         if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
         if(tel){
           if(st.smsBook) add('Please just book it and text the patient the date they will receive the call - no need to phone them first.', 'Book it and text the patient the date of the call - no need to phone first.', 3);
         } else if(st.urgency!=='today'){
-          if(st.fbSelf) add(`If they cannot attend the slot offered, please encourage them to self-book a suitable appointment via the NHS App or online${st.fbNext ? ', or book the next suitable slot for them' : ''}.`, `If unable to attend, please help them self-book via the NHS App/online${st.fbNext ? ' or book the next suitable slot' : ''}.`, 3);
-          else if(st.fbNext) add('If they cannot attend the slot offered, please book the next suitable slot for them.', 'If unable to attend, book the next suitable slot.', 3);
+          const fb = effFb();
+          if(fb==='self' || fb==='both') add(`If they cannot attend the slot offered, please encourage them to self-book a suitable appointment via the NHS App or online${fb==='both' ? ', or book the next suitable slot for them' : ''}.`, `If unable to attend, please help them self-book via the NHS App/online${fb==='both' ? ' or book the next suitable slot' : ''}.`, 3);
+          else if(fb==='next') add('If they cannot attend the slot offered, please book the next suitable slot for them.', 'If unable to attend, book the next suitable slot.', 3);
           if(st.fbResubmit) add('They are also welcome to send a new online request if their needs change.', 'New online request welcome if needs change.', 1);
         }
       }
@@ -772,11 +784,17 @@
     else if(st.who==='mhp') opts.push({k:'mhpCheck', l:`Check registered address is in ${(S.mhpArea||'').trim() || 'the eligible area'}`});
     else opts.push({k:'hub', l:'Hub slots can be used'});
     if(st.purpose==='results') opts.push({k:'appResults', l:'Tell patient results are viewable in the NHS App'});
+    d.showPhotos = photosAvail();
+    d.photoOpts = [{v:'no', l:'No photos needed'},{v:'yes', l:'Yes, ask the patient to send photos'}];
+    d.showFb = st.who!=='phleb' && st.modality!=='tel' && st.urgency!=='today';
+    d.appAvail = appAvail();
+    d.fbOpts = d.appAvail
+      ? [{v:'self', l:'Self-book on the NHS App'},{v:'next', l:'Team books the next suitable slot'},{v:'both', l:'Either'},{v:'none', l:'Say nothing'}]
+      : [{v:'next', l:'Team books the next suitable slot'},{v:'none', l:'Say nothing'}];
+    d.fbHint = d.appAvail ? 'NHS App self-booking is available for this slot type' : 'NHS App self-booking is not available for this slot type';
     if(st.who!=='phleb' && st.modality==='tel'){
       opts.push({k:'smsBook', l:'Book it and text the patient the date of the call (no phone call first)'});
-    } else if(st.who!=='phleb' && st.urgency!=='today'){
-      opts.push({k:'fbSelf', l:'If unable to attend: self-book via NHS App'});
-      opts.push({k:'fbNext', l:'If unable to attend: book next suitable slot'});
+    } else if(d.showFb){
       opts.push({k:'fbResubmit', l:'New online request welcome if needs change'});
     }
     d.bookToggles = opts.concat(d.common);
@@ -826,7 +844,9 @@
         html += row('For', chips('purpose', d.purposeOpts) + (st.purpose==='other' ? txt('purposeCustom', d.purposePh) : ''), st.who==='nurse' ? '' : 'Optional');
       }
       if(d.showModality) html += row('Type', chips('modality', d.modalityOpts));
+      if(d.showPhotos) html += row('Photos', chips('photos', d.photoOpts), 'Requested before the call');
       if(d.showUrgency) html += row('When', chips('urgency', d.URG)) + dayRow;
+      if(d.showFb) html += row('If unable to attend', chips('fb', d.fbOpts), d.fbHint);
       html += row('Options', togs(d.bookToggles), d.optHint);
     }
     else if(st.outcome==='mine'){
@@ -862,7 +882,9 @@
   let mode = S.mode==='guided' ? 'guided' : 'panel';
   let answered = new Set();
   const labelOf = (opts, v) => (opts.find(o=>o.v===v)||{}).l || '';
-  const SHORT = {hub:'Hub', mhpCheck:'Address check', appResults:'NHS App results', smsBook:'Book & text date', fbSelf:'Self-book fallback', fbNext:'Next-slot fallback', fbResubmit:'New request OK', safety:'Safety-net', nosms:'No text', record:'Record on EMIS', upload:'Morning list', settled:'Complete if settled', confirm:'Confirm slot', comeback:'Come back if no help', explain:'Explain service', plink:'Text NHS link', adminList:'Admin list', addList:'EMIS list', complete:'Complete case'};
+  const SHORT = {hub:'Hub', mhpCheck:'Address check', appResults:'NHS App results', smsBook:'Book & text date', fbResubmit:'New request OK', safety:'Safety-net', nosms:'No text', record:'Record on EMIS', upload:'Morning list', settled:'Complete if settled', confirm:'Confirm slot', comeback:'Come back if no help', explain:'Explain service', plink:'Text NHS link', adminList:'Admin list', addList:'EMIS list', complete:'Complete case'};
+  const CHIP = {hub:'Hub slots OK', appResults:'Results viewable in NHS App', smsBook:'Book it and text the date (no call first)', fbResubmit:'New online request welcome', safety:'Safety-net line for patient', nosms:'No text to patient', record:'Record on EMIS', upload:'Also upload to morning list', settled:'Complete the case if settled', confirm:'Confirm a slot is secured', comeback:'Come back to us if no help', explain:'Say what the service covers', plink:'Text the patient the NHS link', adminList:'Add to my admin list', addList:'Put on my EMIS list', complete:'Complete the case'};
+  const FB_SHORT = {self:'Self-book fallback', next:'Next-slot fallback', both:'Self-book or next slot', none:'No fallback'};
   const onLabels = list => { const on = list.filter(t=>st[t.k]).map(t=>SHORT[t.k] || t.l); return on.length ? on.join(' · ') : 'None'; };
   const TEXT_FOR = {reason:'custom', purpose:'other', check:'custom', service:'other', adminType:'other'};
 
@@ -876,34 +898,40 @@
       if(st.who==='me' || st.who==='named') s.push({id:'reason', q:'Why them? The team tells the patient this.', short:'Why them', kind:'single', key:'reason', opts:d.reasonOpts, textKey:'reasonCustom', ph:'e.g. they saw the patient last week', ans:st.reason==='custom' ? (st.reasonCustom.trim() || 'Other') : labelOf(d.reasonOpts, st.reason)});
       if(d.purposeOpts) s.push({id:'purpose', q:'What is the appointment for?', short:'For', kind:'single', key:'purpose', opts:d.purposeOpts, textKey:'purposeCustom', ph:d.purposePh, ans:st.purpose==='other' ? (st.purposeCustom.trim() || 'Other') : labelOf(d.purposeOpts, st.purpose), optional:true});
       if(d.showModality) s.push({id:'modality', q:'Face-to-face or telephone?', short:'Type', kind:'single', key:'modality', opts:d.modalityOpts, ans:labelOf(d.modalityOpts, st.modality)});
+      if(d.showPhotos) s.push({id:'photos', q:'Do you need photos from the patient?', short:'Photos', kind:'single', key:'photos', opts:d.photoOpts, sub:'The team will ask for them before the call', ans:st.photos==='yes' ? 'Yes' : 'No'});
       if(d.showUrgency) s.push({id:'urgency', q:'How soon?', short:'When', kind:'single', key:'urgency', opts:d.URG, ans:labelOf(d.URG, st.urgency)});
       if(d.showUrgency && st.urgency==='day') s.push({id:'day', q:'Which day?', short:'Day', kind:'single', key:'day', opts:DAYS.map(x=>({v:x, l:x})), ans:dayOk(st.day)});
-      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.bookToggles, sub:d.optHint, ans:onLabels(d.bookToggles)});
+      s.push(finalStep(d.bookToggles, d.showFb ? d.fbOpts : null, d.optHint));
     }
     else if(st.outcome==='mine'){
       s.push({id:'list', q:'Which of your lists?', short:'List', kind:'single', key:'list', opts:d.listOpts, sub:d.listHint, ans:labelOf(d.listOpts, st.list)});
-      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.mineToggles, ans:onLabels(d.mineToggles)});
+      s.push(finalStep(d.mineToggles));
     }
     else if(st.outcome==='contact'){
       s.push({id:'check', q:'What should the team ask the patient?', short:'Ask', kind:'single', key:'check', opts:d.checkOpts, textKey:'checkCustom', ph:'e.g. which side is the pain on, and any fever?', ans:st.check==='custom' ? (st.checkCustom.trim() || 'A specific question') : labelOf(d.checkOpts, st.check)});
       s.push({id:'then', q:'If the problem is ongoing, what then?', short:'If ongoing', kind:'single', key:'then', opts:d.thenOpts, ans:labelOf(d.thenOpts, st.then)});
-      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.contactToggles, ans:onLabels(d.contactToggles)});
+      s.push(finalStep(d.contactToggles));
     }
     else if(st.outcome==='signpost'){
       const all = d.serviceGroups.flatMap(g=>g.opts);
       s.push({id:'service', q:'Which service?', short:'Service', kind:'groups', key:'service', groups:d.serviceGroups, textKey:'serviceCustom', ph:'e.g. the community mental health team', ans:st.service==='other' ? (st.serviceCustom.trim() || 'Other service') : labelOf(all, st.service)});
-      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.signpostToggles, ans:onLabels(d.signpostToggles)});
+      s.push(finalStep(d.signpostToggles));
     }
     else if(st.outcome==='admin'){
       s.push({id:'adminType', q:'What kind of request?', short:'Request', kind:'single', key:'adminType', opts:d.adminOpts, textKey:'adminCustom', ph:'e.g. Please contact the patient to confirm which pharmacy they use', ans:st.adminType==='other' ? (st.adminCustom.trim() || 'Other') : labelOf(d.adminOpts, st.adminType)});
-      s.push({id:'opts', q:'Anything else for the team?', short:'Options', kind:'multi', togs:d.adminToggles, ans:onLabels(d.adminToggles)});
+      s.push(finalStep(d.adminToggles));
     }
     else if(st.outcome==='done'){
-      s.push({id:'opts', q:'What should the team do?', short:'Team', kind:'multi', togs:d.doneToggles, ans:onLabels(d.doneToggles)});
       s.push({id:'patientMsg', q:'Anything to text the patient?', short:'Text', kind:'text', key:'patientMsg', ph:'Optional: words for the team to text the patient', ans:st.patientMsg.trim() || 'Nothing', optional:true});
+      s.push(finalStep(d.doneToggles));
     }
-    s.push({id:'notes', q:'Any booking notes?', short:'Notes', kind:'notes', ans:st.notes.trim() || 'None', optional:true});
     return s;
+  }
+  function finalStep(togs, fbOpts, hint){
+    const parts = [];
+    if(fbOpts) parts.push(FB_SHORT[effFb()]);
+    parts.push(onLabels(togs));
+    return {id:'opts', q:'Anything else for the team?', short:'Options', kind:'final', togs, fbOpts:fbOpts||null, sub:'Defaults are already applied. Tap anything to change it.', hint, ans:parts.filter(x=>x && x!=='None').join(' · ') || 'Defaults'};
   }
 
   let navDir = 'fwd', lastStage = null, stageAt = 0;
@@ -921,6 +949,16 @@
       body = (list.length ? gopts(s.key, list, s.id) : '') + txt(s.textKey, s.ph); needNext = true;
     } else if(s.kind==='multi'){
       body = togs(s.togs); needNext = true;
+    } else if(s.kind==='final'){
+      const tchips = list => `<div class="chips">${list.map(t=>`<button type="button" role="switch" aria-checked="${!!st[t.k]}" class="chip tchip${st[t.k]?' on':''}" data-t="${t.k}"><span class="tick"></span>${esc(CHIP[t.k] || t.l)}</button>`).join('')}</div>`;
+      if(s.fbOpts){
+        const cur = effFb();
+        body += `<div class="ggrp">If they can't attend the slot</div><div class="chips">${s.fbOpts.map(o=>`<button type="button" class="chip${cur===o.v?' on':''}" data-k="fb" data-v="${o.v}" aria-pressed="${cur===o.v}">${esc(o.l)}</button>`).join('')}</div>`;
+      }
+      body += `<div class="ggrp">Include</div>` + tchips(s.togs);
+      if(s.hint) body += `<p class="gsub" style="margin:6px 0 0">${esc(s.hint)}</p>`;
+      body += `<div class="ggrp">Booking notes</div>` + noteChipsHtml() + txt('notes', 'Optional: anything the team needs to know when booking');
+      return body + `<div class="gact"><button type="button" class="btn-sm" data-done="${s.id}">Show message &rarr;</button></div>`;
     } else if(s.kind==='groups'){
       body = s.groups.map(g => `<div class="ggrp">${esc(g.l)}</div>` + gopts(s.key, g.opts, s.id)).join('');
       if(st[s.key]===TEXT_FOR[s.key]){ body += txt(s.textKey, s.ph); needNext = true; }
@@ -949,7 +987,7 @@
       const pct = Math.max(4, Math.round(idx / total * 100));
       html = `<div class="stage${anim}" data-step="${cur.id}"><div class="gprog"><i style="width:${pct}%"></i></div><div class="gmeta"><span>Question ${idx+1} of ${total}</span>${back}</div><h3 class="gq">${esc(cur.q)}</h3>${cur.sub ? `<p class="gsub">${esc(cur.sub)}</p>` : ''}${stageBody(cur)}</div>`;
     } else {
-      const pills = steps.map(s => `<button type="button" class="gpill" data-reopen="${s.id}" title="Change">${esc(s.short)}: <b>${esc(s.ans)}</b></button>`).join('');
+      const pills = steps.map(s => `<button type="button" class="gpill" data-reopen="${s.id}" title="Change">${esc(s.short)}: <b>${esc(s.ans)}</b></button>`).join('') + (st.notes.trim() ? `<button type="button" class="gpill" data-reopen="opts" title="Change">Notes: <b>${esc(st.notes.trim())}</b></button>` : '');
       html = `<div class="stage${anim}"><div class="gprog"><i style="width:100%"></i></div><div class="gcopied" id="gcopied" hidden><span>Copied. Paste it into Klinik, then:</span><button type="button" class="btn-sm" data-next>Next case &rarr;</button></div><div class="gmeta"><span>Your message</span>${back}</div><h3 class="gq">Copy this into Klinik</h3><div class="gmsg"><textarea id="gmsg" spellcheck="false" aria-label="Generated message"></textarea><div class="gcount" id="gcount"></div></div><div class="gact"><button type="button" class="btn-sm" data-copy>Copy message</button></div><div class="gsummary">${pills}</div><div class="gfoot"><button type="button" class="btn-link" data-next>Start over without copying</button></div></div>`;
     }
     el.options.className = 'panel guided';
@@ -1038,7 +1076,7 @@
     if(e.target.closest('[data-copy]')){ copy(); return; }
     if(e.target.closest('[data-next]') || e.target.closest('[data-restart]')){ st = fresh('book'); answered = new Set(); navDir = 'fwd'; el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); renderAll(); return; }
     const note = e.target.closest('[data-note]');
-    if(note){ st.notes = st.notes.trim()===note.dataset.note ? '' : note.dataset.note; if(mode==='guided' && st.notes){ answered.add('notes'); navDir = 'fwd'; } renderPanel(); update(); return; }
+    if(note){ st.notes = st.notes.trim()===note.dataset.note ? '' : note.dataset.note; renderPanel(); update(); return; }
     const chip = e.target.closest('[data-k]');
     if(chip){
       const k = chip.dataset.k, v = chip.dataset.v;
