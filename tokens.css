@@ -1,0 +1,124 @@
+/* tokens.css - the design system. Every colour, size, radius, shadow and duration used by app.css comes from here.
+   Light palette on :root; dark redefines colour tokens only, for both the system preference and an explicit data-theme. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Colour: teal-biased neutrals, one accent, three semantic tones */
+  --color-bg: #F2F5F5;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #E9EFEF;
+  --color-surface-3: #F7FAFA;
+  --color-text: #15262B;
+  --color-text-muted: #5A6C71;
+  --color-line: #D3DDDE;
+  --color-line-strong: #BFCBCD;
+  --color-accent: #0B6E78;
+  --color-on-accent: #FFFFFF;
+  --color-accent-soft: #D9EEF0;
+  --color-accent-line: #8FC7CD;
+  --color-crit: #B7372A; --color-crit-soft: #F6E0DC;
+  --color-warn: #A86A08; --color-warn-soft: #F7E9CF;
+  --color-ok: #2F7A57;   --color-ok-soft: #DCEFE4;
+  --color-on-ok: #FFFFFF;
+  --shadow-1: 0 1px 2px rgba(21, 38, 43, .06), 0 8px 24px rgba(21, 38, 43, .08);
+  --shadow-bar: 0 -6px 20px rgba(0, 0, 0, .08);
+
+  /* Type */
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 15px;
+  --text-xl: 17px;
+  --text-2xl: 18px;
+  --text-3xl: 24px;
+  --text-display: 30px;
+  --leading: 1.5;
+  --leading-tight: 1.2;
+  --tracking-label: .06em;
+
+  /* Space (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 36px;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-pill: 999px;
+  --border: 1px;
+
+  /* Sizing */
+  --measure: 72ch;
+  --page-max: 1180px;
+  --stage-max: 720px;
+  --control-h: 40px;
+  --switch-w: 28px;
+  --switch-h: 16px;
+  --tick: 16px;
+  --meter-h: 4px;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-base: 240ms;
+  --dur-slow: 350ms;
+  --ease-out: cubic-bezier(.2, .7, .2, 1);
+  --slide: 26px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0F1719;
+    --color-surface: #172124;
+    --color-surface-2: #1F2C30;
+    --color-surface-3: #131C1F;
+    --color-text: #E4ECED;
+    --color-text-muted: #98A9AE;
+    --color-line: #2B3B40;
+    --color-line-strong: #3A4C52;
+    --color-accent: #46B9C2;
+    --color-on-accent: #062A2E;
+    --color-accent-soft: #163A3E;
+    --color-accent-line: #2E7E86;
+    --color-crit: #E8776A; --color-crit-soft: #3B1F1B;
+    --color-warn: #E0A64A; --color-warn-soft: #3A2C13;
+    --color-ok: #6CC29A;   --color-ok-soft: #173327;
+    --color-on-ok: #062A2E;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+  }
+}
+:root[data-theme="dark"] {
+  --color-bg: #0F1719;
+  --color-surface: #172124;
+  --color-surface-2: #1F2C30;
+  --color-surface-3: #131C1F;
+  --color-text: #E4ECED;
+  --color-text-muted: #98A9AE;
+  --color-line: #2B3B40;
+  --color-line-strong: #3A4C52;
+  --color-accent: #46B9C2;
+  --color-on-accent: #062A2E;
+  --color-accent-soft: #163A3E;
+  --color-accent-line: #2E7E86;
+  --color-crit: #E8776A; --color-crit-soft: #3B1F1B;
+  --color-warn: #E0A64A; --color-warn-soft: #3A2C13;
+  --color-ok: #6CC29A;   --color-ok-soft: #173327;
+  --color-on-ok: #062A2E;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-base: 0ms; --dur-slow: 0ms; --slide: 0px; }
+}

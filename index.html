@@ -1,1191 +1,144 @@
 <!doctype html>
 <html lang="en-GB">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Builds the message to the admin team for a Klinik triage case in a few clicks: what, who and by when, within the character limit, in line with the 2026/27 GP contract and GMC delegation guidance.">
-<meta name="theme-color" content="#0B6E78">
-<meta name="color-scheme" content="light dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B6E78'/%3E%3Cpath d='M18 20h28M18 32h28M18 44h16' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
-<title>Klinik Triage Composer</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<style>
-  :root{
-    --bg:#F2F5F5; --surface:#FFFFFF; --surface-2:#E9EFEF; --surface-3:#F7FAFA;
-    --text:#15262B; --text-2:#5A6C71; --line:#D3DDDE; --line-2:#BFCBCD;
-    --accent:#0B6E78; --accent-ink:#FFFFFF; --accent-soft:#D9EEF0; --accent-line:#8FC7CD;
-    --crit:#B7372A; --crit-soft:#F6E0DC; --warn:#A86A08; --warn-soft:#F7E9CF; --ok:#2F7A57; --ok-soft:#DCEFE4;
-    --shadow:0 1px 2px rgba(21,38,43,.06), 0 8px 24px rgba(21,38,43,.08);
-    --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
-    --body:"IBM Plex Sans","Helvetica Neue",Arial,system-ui,sans-serif;
-    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --bg:#0F1719; --surface:#172124; --surface-2:#1F2C30; --surface-3:#131C1F;
-      --text:#E4ECED; --text-2:#98A9AE; --line:#2B3B40; --line-2:#3A4C52;
-      --accent:#46B9C2; --accent-ink:#062A2E; --accent-soft:#163A3E; --accent-line:#2E7E86;
-      --crit:#E8776A; --crit-soft:#3B1F1B; --warn:#E0A64A; --warn-soft:#3A2C13; --ok:#6CC29A; --ok-soft:#173327;
-      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
-    }
-  }
-  :root[data-theme="dark"]{
-    --bg:#0F1719; --surface:#172124; --surface-2:#1F2C30; --surface-3:#131C1F;
-    --text:#E4ECED; --text-2:#98A9AE; --line:#2B3B40; --line-2:#3A4C52;
-    --accent:#46B9C2; --accent-ink:#062A2E; --accent-soft:#163A3E; --accent-line:#2E7E86;
-    --crit:#E8776A; --crit-soft:#3B1F1B; --warn:#E0A64A; --warn-soft:#3A2C13; --ok:#6CC29A; --ok-soft:#173327;
-    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
-  }
-  *{box-sizing:border-box}
-  [hidden]{display:none!important}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-  button,input,textarea{font:inherit;color:inherit}
-  button{cursor:pointer}
-  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-  a{color:var(--accent)}
-  .wrap{max-width:1180px;margin:0 auto;padding:28px 24px 120px}
-
-  /* Header */
-  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:22px}
-  h1{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.01em;line-height:1.1;margin:0 0 6px;text-wrap:balance}
-  .sub{margin:0;color:var(--text-2);max-width:60ch}
-  .signer{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px 8px 14px}
-  .signer label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600;white-space:nowrap}
-  .signer input{width:150px;border:1px solid transparent;border-bottom:1px solid var(--line-2);background:transparent;padding:4px 2px;font-weight:500}
-  .signer input:focus{outline:none;border-bottom-color:var(--accent)}
-  .signer.needs input{border-bottom-color:var(--warn)}
-
-  /* Workbench */
-  .work{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr);gap:28px;align-items:start}
-  .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);font-weight:600;margin:0 0 10px}
-  .block{margin-bottom:22px}
-
-  .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;font-size:14px;line-height:1.3;transition:background .12s,border-color .12s}
-  .chip:hover{border-color:var(--line-2);background:var(--surface-3)}
-  .chip.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:500}
-  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--line-2);flex:none}
-  .chip.t-crit .dot{background:var(--crit)} .chip.t-warn .dot{background:var(--warn)} .chip.t-ok .dot{background:var(--ok)}
-  .chip.t-crit.on{background:var(--crit-soft);border-color:var(--crit);color:var(--crit)}
-  .chip.t-warn.on{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
-  .chip.t-ok.on{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
-  .quick .chip{font-size:13px;padding:5px 11px}
-
-  .seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:4px;gap:4px}
-  .seg button{border:0;background:transparent;border-radius:7px;padding:8px 12px;font-weight:500;color:var(--text-2)}
-  .seg button:hover{color:var(--text)}
-  .seg button.on{background:var(--accent);color:var(--accent-ink)}
-
-  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 18px 8px}
-  .panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0 8px;border-bottom:1px solid var(--line)}
-  .panel-head h2{font-family:var(--display);font-size:18px;font-weight:600;margin:0}
-  .rtype{font-size:12px;color:var(--text-2)}
-  .rtype b{color:var(--text);font-weight:500}
-  .row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
-  .row:last-child{border-bottom:0}
-  .rl{font-size:13px;font-weight:600;color:var(--text-2);padding-top:7px}
-  .rh{display:block;font-weight:400;font-size:12px;margin-top:2px}
-  .rc{display:flex;flex-direction:column;gap:8px;min-width:0}
-  .togs{display:flex;flex-wrap:wrap;gap:6px 16px}
-  .tog{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;padding:5px 2px;font-size:14px;color:var(--text-2);border-radius:6px}
-  .tog.on{color:var(--text)}
-  .sw{width:28px;height:16px;border-radius:999px;background:var(--line-2);position:relative;flex:none;transition:background .12s}
-  .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--surface);transition:transform .12s}
-  .tog.on .sw{background:var(--accent)}
-  .tog.on .sw::after{transform:translateX(12px)}
-  .txt{width:100%;max-width:520px;border:1px solid var(--line);background:var(--surface-3);border-radius:8px;padding:7px 10px}
-  .txt:focus{outline:none;border-color:var(--accent)}
-  .sublab{font-size:12px;color:var(--text-2)}
-
-  /* Preview */
-  .preview{position:sticky;top:16px}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
-  .card-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 10px}
-  .card-head .eyebrow{margin:0}
-  .count{font-family:var(--mono);font-size:13px;color:var(--text-2);font-variant-numeric:tabular-nums}
-  .count.warn{color:var(--warn)} .count.over{color:var(--crit);font-weight:500}
-  .meter{height:4px;background:var(--surface-2);margin:0 18px;border-radius:2px;overflow:hidden}
-  .meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
-  .meter i.warn{background:var(--warn)} .meter i.over{background:var(--crit)}
-  textarea#msg{display:block;width:100%;min-height:230px;border:0;background:transparent;resize:vertical;padding:14px 18px;line-height:1.55;font-size:15px}
-  textarea#msg:focus{outline:none;background:var(--surface-3)}
-  .note{padding:0 18px 10px;font-size:13px;color:var(--text-2);min-height:14px}
-  .note.over{color:var(--crit)}
-  .actions{display:flex;gap:8px;padding:0 18px 16px}
-  .primary{flex:1;border:0;background:var(--accent);color:var(--accent-ink);border-radius:9px;padding:12px 16px;font-weight:600;font-size:15px;transition:background .12s}
-  .primary:hover{filter:brightness(1.06)}
-  .primary.done{background:var(--ok);color:#fff}
-  .ghost{border:1px solid var(--line);background:transparent;border-radius:9px;padding:10px 14px;color:var(--text-2)}
-  .hint{margin:0;padding:0 18px 14px;font-size:12px;color:var(--text-2)}
-  kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface-3)}
-
-  /* Foot */
-  .foot{margin-top:36px;display:grid;gap:14px}
-  details{background:var(--surface);border:1px solid var(--line);border-radius:12px}
-  summary{cursor:pointer;padding:14px 18px;font-family:var(--display);font-weight:600;font-size:17px;list-style:none;display:flex;align-items:center;gap:10px}
-  summary::-webkit-details-marker{display:none}
-  summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--text-2);border-bottom:2px solid var(--text-2);transform:rotate(-45deg);transition:transform .15s;flex:none;margin-left:2px}
-  details[open] summary::before{transform:rotate(45deg)}
-  .dbody{padding:0 18px 20px;max-width:72ch}
-  .dbody p{margin:0 0 12px}
-  .dbody h3{font-family:var(--display);font-size:15px;margin:18px 0 6px}
-  .map{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 14px}
-  .map th,.map td{text-align:left;padding:7px 10px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
-  .map th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600}
-  .srcs{font-size:13px;color:var(--text-2);line-height:1.6}
-  .setgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px 22px;padding:4px 18px 20px}
-  .set label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
-  .set input[type=text],.set input[type=number]{width:100%;border:1px solid var(--line);background:var(--surface-3);border-radius:8px;padding:8px 10px}
-  .set input:focus{outline:none;border-color:var(--accent)}
-  .set .help{font-size:12px;color:var(--text-2);margin-top:4px}
-  .set.wide{grid-column:1/-1}
-
-  /* Header right */
-  .hdr-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .seg.mode{display:inline-flex;grid-template-columns:none;padding:3px}
-  .seg.mode button{padding:6px 12px;font-size:13px}
-  .seg.mode em{font-style:normal;font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.75;margin-left:4px}
-
-  /* Guided mode: one question per screen, then the message */
-  .guided-mode .quick,.guided-mode #outcomeBlock,.guided-mode .preview,.guided-mode .mobilebar{display:none!important}
-  .guided-mode .work{grid-template-columns:minmax(0,1fr);max-width:720px;margin:0 auto}
-  .guided-mode .top,.guided-mode .foot{max-width:720px;margin-left:auto;margin-right:auto}
-  .panel.guided{background:transparent;border:0;padding:0;display:block}
-  .stage{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px 26px 26px;will-change:transform,opacity}
-  .stage.in-fwd{animation:slideFwd .24s cubic-bezier(.2,.7,.2,1)}
-  .stage.in-back{animation:slideBack .24s cubic-bezier(.2,.7,.2,1)}
-  @keyframes slideFwd{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
-  @keyframes slideBack{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}
-  .gprog{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin:-6px 0 16px}
-  .gprog i{display:block;height:100%;background:var(--accent);transition:width .35s cubic-bezier(.2,.7,.2,1)}
-  .gmeta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-2);letter-spacing:.06em;text-transform:uppercase;font-weight:600;min-height:28px}
-  .gq{font-family:var(--display);font-weight:600;font-size:24px;line-height:1.2;margin:6px 0 18px;text-wrap:balance}
-  .gsub{font-size:13px;color:var(--text-2);margin:-10px 0 16px}
-  .gopts{display:grid;gap:8px}
-  .gopts.cols{grid-template-columns:1fr 1fr}
-  .gopt{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;font-size:15px;text-align:left;transition:border-color .12s,background .12s,transform .08s}
-  .gopt:hover{border-color:var(--accent-line);background:var(--surface-3)}
-  .gopt:active{transform:scale(.985)}
-  .gopt.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:500}
-  .gopt .gl{flex:1;min-width:0}
-  .gopt .gkey{font-family:var(--mono);font-size:11px;color:var(--text-2);border:1px solid var(--line);border-radius:5px;padding:1px 0;min-width:22px;text-align:center;flex:none}
-  .gopt.on .gkey{border-color:var(--accent-line);color:var(--accent)}
-  .gopt .dot{width:9px;height:9px;border-radius:50%;background:var(--line-2);flex:none}
-  .gopt.t-crit .dot{background:var(--crit)} .gopt.t-warn .dot{background:var(--warn)} .gopt.t-ok .dot{background:var(--ok)}
-  .ggrp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);font-weight:600;margin:16px 0 8px}
-  .ggrp:first-child{margin-top:0}
-  .stage .chips .chip{padding:9px 14px;font-size:14.5px}
-  .tchip .tick{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line-2);display:inline-flex;align-items:center;justify-content:center;font-size:11px;line-height:1;flex:none;transition:background .12s,border-color .12s}
-  .tchip.on .tick{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-  .tchip.on .tick::after{content:"\2713"}
-  .tchip:not(.on){color:var(--text-2)}
-  .stage .txt{max-width:none;padding:11px 12px;font-size:15px;margin-top:10px}
-  .stage .togs{display:grid;gap:4px}
-  .stage .tog{padding:9px 6px;font-size:15px;border-radius:8px}
-  .stage .tog:hover{background:var(--surface-3)}
-  .gact{display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap}
-  .btn-sm{border:0;background:var(--accent);color:var(--accent-ink);border-radius:9px;padding:10px 18px;font-weight:600;font-size:15px;transition:transform .08s}
-  .btn-sm:active{transform:scale(.97)}
-  .btn-sm.done{background:var(--ok);color:#fff}
-  .btn-sec{border:1px solid var(--line-2);background:var(--surface);color:var(--text);border-radius:9px;padding:10px 18px;font-weight:600;font-size:15px}
-  .btn-sec:hover{background:var(--surface-3)}
-  .btn-link{border:0;background:transparent;color:var(--text-2);padding:6px 4px;font-size:13px;text-decoration:underline;text-underline-offset:3px;letter-spacing:0;text-transform:none;font-weight:500}
-  .gmsg textarea{display:block;width:100%;min-height:220px;border:1px solid var(--line);background:var(--surface-3);border-radius:10px;padding:14px 16px;line-height:1.55;font-size:15px;resize:vertical}
-  .gmsg textarea:focus{outline:none;border-color:var(--accent)}
-  .gcount{font-family:var(--mono);font-size:12px;color:var(--text-2);margin-top:8px;font-variant-numeric:tabular-nums}
-  .gcount.over{color:var(--crit)}
-  .gsummary{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
-  .gpill{border:1px solid var(--line);background:var(--surface-3);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--text-2);transition:border-color .12s}
-  .gpill b{color:var(--text);font-weight:500}
-  .gpill:hover{border-color:var(--accent-line);color:var(--accent)}
-  .gcopied{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--ok-soft);border:1px solid var(--ok);color:var(--ok);border-radius:10px;padding:10px 10px 10px 14px;margin:0 0 14px;font-weight:600;animation:dropIn .22s cubic-bezier(.2,.7,.2,1)}
-  .gcopied .btn-sm{background:var(--ok);color:#fff}
-  @keyframes dropIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-  .gfoot{margin-top:14px;text-align:right}
-  .gfoot .btn-link{font-size:12px;color:var(--text-2);opacity:.8}
-  .card.pulse{box-shadow:0 0 0 3px var(--accent-soft),var(--shadow);transition:box-shadow .15s}
-  .card{transition:box-shadow .5s}
-  @media (prefers-reduced-motion: reduce){ .stage.in-fwd,.stage.in-back{animation:none} .gprog i{transition:none} }
-  @media (max-width:600px){ .gopts.cols{grid-template-columns:1fr} .stage{padding:18px 16px 20px} .gq{font-size:21px} }
-
-  /* Mobile */
-  .mobilebar{display:none}
-  @media (max-width:900px){
-    .wrap{padding:20px 16px 110px}
-    .work{grid-template-columns:1fr}
-    .preview{position:static}
-    .row{grid-template-columns:1fr;gap:6px}
-    .rl{padding-top:0}
-    .mobilebar{display:flex;position:fixed;left:0;right:0;bottom:0;gap:12px;align-items:center;padding:10px 16px;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.08)}
-    .mobilebar .count{flex:none}
-    .mobilebar .primary{flex:1}
-  }
-  @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Klinik Triage Composer</title>
+  <meta name="description" content="Builds the message to the admin team for a Klinik triage case in a few clicks: what, who and by when, within the character limit, in line with the 2026/27 GP contract and GMC delegation guidance.">
+  <meta name="theme-color" content="#0B6E78">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B6E78'/%3E%3Cpath d='M18 20h28M18 32h28M18 44h16' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="./tokens.css">
+  <link rel="stylesheet" href="./app.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div>
-      <h1>Klinik Triage Composer</h1>
-      <p class="sub">Pick an outcome, adjust anything that differs, copy. Every message states what, who and by when, and never sends the patient away to "call back tomorrow".</p>
-    </div>
-    <div class="hdr-right">
-      <div class="seg mode" id="modeSeg" role="radiogroup" aria-label="Layout">
-        <button type="button" data-mode="panel">Panel</button>
-        <button type="button" data-mode="guided">Guided <em>beta</em></button>
+  <div class="l-page">
+    <header class="l-header">
+      <div class="l-header__intro">
+        <h1>Klinik Triage Composer</h1>
+        <p class="c-lede">Pick an outcome, adjust anything that differs, copy. Every message states what, who and by when, and never sends the patient away to "call back tomorrow".</p>
       </div>
-      <div class="signer" id="signer">
-        <label for="name">Signed as</label>
-        <input id="name" type="text" placeholder="Your name" autocomplete="off">
-      </div>
-    </div>
-  </header>
-
-  <main class="work">
-    <section class="controls">
-      <div class="block quick">
-        <h2 class="eyebrow">Quick starts</h2>
-        <div class="chips" id="presets"></div>
-      </div>
-      <div class="block" id="outcomeBlock">
-        <h2 class="eyebrow">Outcome</h2>
-        <div class="seg" id="outcomes"></div>
-      </div>
-      <div class="panel" id="options"></div>
-    </section>
-
-    <aside class="preview">
-      <div class="card">
-        <div class="card-head">
-          <span class="eyebrow">Message to team</span>
-          <span class="count" id="count">0 / 500</span>
+      <div class="l-header__tools">
+        <div id="mode-switch"></div>
+        <div class="c-signer" id="signer">
+          <label class="c-signer__label" for="signer-name">Signed as</label>
+          <input class="c-signer__input" id="signer-name" type="text" placeholder="Your name" autocomplete="off">
         </div>
-        <div class="meter"><i id="meter"></i></div>
-        <textarea id="msg" spellcheck="false" aria-label="Generated message"></textarea>
-        <div class="note" id="note"></div>
-        <div class="actions">
-          <button class="primary" id="copy" type="button">Copy message</button>
-          <button class="ghost" id="regen" type="button" hidden>Regenerate</button>
+      </div>
+    </header>
+
+    <main class="l-work">
+      <section class="l-stack" aria-label="Build the message">
+        <div class="l-quick">
+          <h2 class="c-eyebrow">Quick starts</h2>
+          <div id="presets" class="c-chips"></div>
         </div>
-        <p class="hint">Edit the text freely before copying. <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> copies.</p>
-      </div>
-    </aside>
-  </main>
-
-  <section class="foot">
-    <details id="why">
-      <summary>Why the wording is like this</summary>
-      <div class="dbody">
-        <p>Each message is built to satisfy two sets of rules at once: the GP contract's access requirements and the GMC's guidance on delegating to colleagues.</p>
-
-        <h3>The GP contract, 2026/27</h3>
-        <p>From April 2026 practices must deal with requests they identify as clinically urgent on the same day, give non-urgent requests an appropriate response by the end of the next core-hours period, keep online consultation open throughout core hours without capping requests, and must not ask patients to call back, or make contact, on another day. An "appropriate response" is one of four things: an appointment (in person, telephone or video) at an appropriate and reasonable time; advice or care by another method; directing the patient to an appropriate service, including one they can access themselves; or a request for further information. Every outcome in the composer maps to one of the four, and when a patient cannot take the slot offered the fallback is always something the practice does or the patient can do now: self-book on the NHS App, or the team books the next suitable slot. "Try again another day" never appears.</p>
-        <table class="map">
-          <thead><tr><th>Outcome</th><th>Contract response type</th></tr></thead>
-          <tbody>
-            <tr><td>Book appointment · My triage slots</td><td>Appointment at an appropriate and reasonable time; same day when clinically urgent</td></tr>
-            <tr><td>Contact &amp; check</td><td>Request for further information, with the next step already decided</td></tr>
-            <tr><td>Signpost</td><td>Direct the patient to an appropriate service they can access, with a route back if it does not help</td></tr>
-            <tr><td>Admin request · Dealt with</td><td>Advice or care provided by another method</td></tr>
-          </tbody>
-        </table>
-
-        <h3>GMC guidance on delegation</h3>
-        <p>A message to the team is a delegation. The GMC's <em>Delegation and referral</em> guidance asks for clear instructions covering what needs to be done, by whom and by when; the delegating clinician remains accountable for the decision and for the patient's overall management, and must record the work in line with <em>Good medical practice</em> paragraphs 69 to 71. So every message names the action, the clinician type (and the person, where it matters) and the timeframe, and the same-day path tells the team to escalate straight back to you if there is no slot. The optional safety-net line gives the team a consistent form of words to relay, so the patient always knows what to do if things change before they are seen.</p>
-
-        <h3>Deliberate wording choices</h3>
-        <p>Fallbacks use self-book or next-slot routes, never "resubmit another day". A timeframe is stated in every booking, with the contract's three tiers (today, next soonest, when next available) plus a specific clinic day. Same-day bookings carry an escalation line. A safety-net line the team relays is available on clinical outcomes and on by default. NHS App education asks the team to confirm a slot is secured before the call ends. Optional "record on EMIS" and "no text message" lines are available everywhere they make sense. Nothing you type is sent anywhere: the page runs entirely in your browser and only your own name and settings are remembered, on your device.</p>
-
-        <h3>Klinik's character limit</h3>
-        <p>Set your Klinik message limit in Settings (500 by default). When a message runs over, the composer swaps in shorter phrasing sentence by sentence, least important first, and warns you if it still does not fit.</p>
-
-        <p class="srcs">Sources: <a href="https://www.england.nhs.uk/long-read/changes-to-the-gp-contract-in-2026-27/" target="_blank" rel="noopener">NHS England, Changes to the GP Contract in 2026/27</a> · <a href="https://www.england.nhs.uk/long-read/supplementary-information-to-support-changes-to-the-2026-27-gp-contract/" target="_blank" rel="noopener">NHS England, Supplementary information for the 2026/27 GP contract</a> · <a href="https://www.bma.org.uk/advice-and-support/gp-practices/gp-service-provision/gp-access-meeting-the-reasonable-needs-of-patients" target="_blank" rel="noopener">BMA, GP access: meeting the reasonable needs of patients</a> · <a href="https://www.gmc-uk.org/professional-standards/the-professional-standards/delegation-and-referral/delegation-and-referral" target="_blank" rel="noopener">GMC, Delegation and referral</a></p>
-      </div>
-    </details>
-
-    <details id="services">
-      <summary>National services you can signpost to (England)</summary>
-      <div class="dbody" style="max-width:none">
-        <p style="max-width:72ch">These are commissioned nationally, so they exist wherever the patient lives. Signposting to any of them is an "appropriate response" under the contract, provided the patient is told how to get there and what to do if it does not help. Checked against NHS England and nhs.uk pages in September 2026.</p>
-        <div style="overflow-x:auto">
-        <table class="map">
-          <thead><tr><th>Service</th><th>Who and what</th><th>How the patient gets it</th></tr></thead>
-          <tbody>
-            <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/pharmacy-first/" target="_blank" rel="noopener">Pharmacy First</a></td><td>Seven pathways: earache 1-17, impetigo 1+, infected insect bite 1+, shingles 18+, sinusitis 12+, sore throat 5+, uncomplicated UTI in women 16-64. Plus minor illness and urgent repeat-medicine supply by referral. Pharmacist prescribing within the pathways is being added from autumn 2026.</td><td>Walk in or phone a pharmacy for the seven conditions; GP, UEC or 111 referral for the rest.</td></tr>
-            <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/nhs-pharmacy-contraception-service/" target="_blank" rel="noopener">NHS Pharmacy Contraception Service</a></td><td>Start or continue oral contraception; free oral emergency contraception since 29 October 2025. No GP registration needed.</td><td>Walk in at a participating pharmacy; nhs.uk pharmacy search shows which.</td></tr>
-            <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/nhs-community-pharmacy-blood-pressure-check-service/" target="_blank" rel="noopener">Pharmacy blood pressure check</a></td><td>Adults 40+ with no hypertension diagnosis (younger if at higher risk); clinic reading and ABPM if raised.</td><td>Walk in, or the practice refers, including for ABPM.</td></tr>
-            <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/nhs-new-medicine-service/" target="_blank" rel="noopener">New Medicine Service</a></td><td>Up to three pharmacist appointments after starting a medicine for a long-term condition, now including antidepressants.</td><td>Patient asks the dispensing pharmacy; practices can also refer.</td></tr>
-            <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/" target="_blank" rel="noopener">Pharmacy vaccinations</a></td><td>Flu and COVID-19 in season; one-off MenB programme for those born 1 Sep 2007 to 31 Aug 2008 and under-25s starting residential university or college, 20 July 2026 to 31 March 2027.</td><td>NHS App / nhs.uk national booking, or walk in at a participating pharmacy.</td></tr>
-            <tr><td><a href="https://www.nhs.uk/nhs-services/mental-health-services/find-nhs-talking-therapies-for-anxiety-and-depression/" target="_blank" rel="noopener">NHS Talking Therapies</a></td><td>Anxiety, depression, panic, phobias, OCD, PTSD; 18+ (16+ in some areas).</td><td>Self-referral online, no GP referral needed.</td></tr>
-            <tr><td><a href="https://www.nhs.uk/pregnancy/finding-out/finding-out-you-are-pregnant/" target="_blank" rel="noopener">Maternity</a></td><td>Booking and antenatal care.</td><td>Self-referral to the local maternity unit; form on the trust website.</td></tr>
-            <tr><td><a href="https://www.nhs.uk/nhs-services/sexual-health-services/find-a-sexual-health-clinic/" target="_blank" rel="noopener">Sexual health clinics</a></td><td>STI testing and treatment, all contraception including LARC, emergency contraception, PrEP/PEP, vaccines.</td><td>Open access, free, confidential, any age.</td></tr>
-            <tr><td><a href="https://www.england.nhs.uk/urgent-emergency-care/nhs-111/" target="_blank" rel="noopener">NHS 111</a></td><td>Urgent assessment, out-of-hours and UTC booking, urgent dental care, urgent medicine supply via Pharmacy First. <a href="https://www.england.nhs.uk/2024/08/nhs-111-offering-crisis-mental-health-support-for-the-first-time/" target="_blank" rel="noopener">Option 2</a> reaches a mental health professional 24/7, any age, family members too.</td><td>111.nhs.uk or call 111.</td></tr>
-            <tr><td><a href="https://www.nhs.uk/conditions/bowel-cancer-screening/" target="_blank" rel="noopener">Bowel screening</a></td><td>Automatic 50-74 every 2 years; 75+ can request a kit every 2 years.</td><td>Helpline 0800 707 6060.</td></tr>
-            <tr><td><a href="https://www.nhs.uk/tests-and-treatments/breast-screening-mammogram/who-breast-screening-is-for/" target="_blank" rel="noopener">Breast screening</a></td><td>Automatic 50 to 71st birthday; 71+ every 3 years on request.</td><td>Contact the local breast screening service.</td></tr>
-            <tr><td><a href="https://www.nhs.uk/conditions/abdominal-aortic-aneurysm-screening/" target="_blank" rel="noopener">AAA screening</a></td><td>Men invited at 65; missed invitations can be requested.</td><td>Contact the local AAA screening service.</td></tr>
-            <tr><td><a href="https://www.nhs.uk/better-health/" target="_blank" rel="noopener">NHS Better Health</a></td><td>Quit smoking (Personal Quit Plan), NHS Weight Loss Plan, Couch to 5K, Active 10, drink less.</td><td>Free online and app-based.</td></tr>
-          </tbody>
-        </table>
+        <div class="l-outcome">
+          <h2 class="c-eyebrow">Outcome</h2>
+          <div id="outcomes"></div>
         </div>
-        <h3>National, but the practice has to refer</h3>
-        <p style="max-width:72ch">These are national programmes that are not self-referral, so they are a booking or admin task rather than a signpost: the <a href="https://www.england.nhs.uk/digital-weight-management/how-to-access-the-programme/" target="_blank" rel="noopener">NHS Digital Weight Management Programme</a> (18+, BMI 30+ or 27.5+ for Black, Asian and minority ethnic groups, with diabetes or hypertension; GP referral only), the Healthier You NHS Diabetes Prevention Programme (non-diabetic hyperglycaemia result needed), and the NHS Health Check (40-74, every 5 years). Discharge Medicines Service and the pharmacy smoking cessation service are referred from hospital, not general practice.</p>
-        <h3>Widespread but locally commissioned</h3>
-        <p style="max-width:72ch">Minor Eye Conditions Service (MECS / CUES), self-referral to physiotherapy, podiatry, audiology, continence and community nursing, local stop-smoking services and drug and alcohol services are available in most areas but depend on the ICB or council, so check your own area before promising them. The composer keeps MECS and physio self-referral in the "Other" row for that reason.</p>
-        <p class="srcs">Sources: <a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/" target="_blank" rel="noopener">NHS England, community pharmacy services</a> · <a href="https://cpe.org.uk/wp-content/uploads/2026/05/Briefing-009.26-CPCF-arrangements-for-2026-27.pdf" target="_blank" rel="noopener">Community Pharmacy England, CPCF arrangements 2026/27</a> · <a href="https://www.england.nhs.uk/2025/10/free-morning-after-pill-women-high-street-pharmacies-nhs-expansion/" target="_blank" rel="noopener">NHS England, free emergency contraception at pharmacies (Oct 2025)</a> · <a href="https://ukhsa.blog.gov.uk/2026/06/12/who-is-eligible-for-the-new-one-off-menb-vaccine-programme/" target="_blank" rel="noopener">UKHSA, MenB programme eligibility (2026)</a> · <a href="https://www.england.nhs.uk/2024/04/nhs-self-referral-for-tests-and-appointments-for-hundreds-of-thousands-of-patients/" target="_blank" rel="noopener">NHS England, self-referral to community services</a></p>
+        <div id="options"></div>
+      </section>
+
+      <aside class="l-preview" aria-label="Message preview">
+        <div class="c-card" id="preview-card">
+          <div class="c-card__head">
+            <h2 class="c-eyebrow">Message to team</h2>
+            <output class="c-count" id="count" for="message">0 / 500</output>
+          </div>
+          <progress class="c-meter" id="meter" max="500" value="0" aria-label="Characters used"></progress>
+          <textarea class="c-textarea c-textarea--bare" id="message" spellcheck="false" aria-label="Generated message"></textarea>
+          <p class="c-card__note" id="note" aria-live="polite"></p>
+          <div class="c-card__body">
+            <button class="c-btn c-btn--primary c-btn--block" id="copy" type="button">Copy message</button>
+            <button class="c-btn c-btn--ghost" id="regen" type="button" hidden>Regenerate</button>
+          </div>
+          <p class="c-card__hint">Edit the text freely before copying. <kbd>Ctrl</kbd>/<kbd>&#8984;</kbd> + <kbd>Enter</kbd> copies.</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="l-foot">
+      <details class="c-details" id="why"><summary class="c-details__summary">Why the wording is like this</summary>
+      <div class="c-details__body c-prose">
+      <p>Each message is built to satisfy two sets of rules at once: the GP contract's access requirements and the GMC's guidance on delegating to colleagues.</p>
+      <h3>The GP contract, 2026/27</h3>
+      <p>From April 2026 practices must deal with requests they identify as clinically urgent on the same day, give non-urgent requests an appropriate response by the end of the next core-hours period, keep online consultation open throughout core hours without capping requests, and must not ask patients to call back, or make contact, on another day. An "appropriate response" is one of four things: an appointment (in person, telephone or video) at an appropriate and reasonable time; advice or care by another method; directing the patient to an appropriate service, including one they can access themselves; or a request for further information. Every outcome in the composer maps to one of the four, and when a patient cannot take the slot offered the fallback is always something the practice does or the patient can do now: self-book on the NHS App, or the team books the next suitable slot. "Try again another day" never appears.</p>
+      <table class="c-table">
+      <thead><tr><th>Outcome</th><th>Contract response type</th></tr></thead>
+      <tbody>
+      <tr><td>Book appointment · My triage slots</td><td>Appointment at an appropriate and reasonable time; same day when clinically urgent</td></tr>
+      <tr><td>Contact &amp; check</td><td>Request for further information, with the next step already decided</td></tr>
+      <tr><td>Signpost</td><td>Direct the patient to an appropriate service they can access, with a route back if it does not help</td></tr>
+      <tr><td>Admin request · Dealt with</td><td>Advice or care provided by another method</td></tr>
+      </tbody>
+      </table>
+      <h3>GMC guidance on delegation</h3>
+      <p>A message to the team is a delegation. The GMC's <em>Delegation and referral</em> guidance asks for clear instructions covering what needs to be done, by whom and by when; the delegating clinician remains accountable for the decision and for the patient's overall management, and must record the work in line with <em>Good medical practice</em> paragraphs 69 to 71. So every message names the action, the clinician type (and the person, where it matters) and the timeframe, and the same-day path tells the team to escalate straight back to you if there is no slot. The optional safety-net line gives the team a consistent form of words to relay, so the patient always knows what to do if things change before they are seen.</p>
+      <h3>Deliberate wording choices</h3>
+      <p>Fallbacks use self-book or next-slot routes, never "resubmit another day". A timeframe is stated in every booking, with the contract's three tiers (today, next soonest, when next available) plus a specific clinic day. Same-day bookings carry an escalation line. A safety-net line the team relays is available on clinical outcomes and on by default. NHS App education asks the team to confirm a slot is secured before the call ends. Optional "record on EMIS" and "no text message" lines are available everywhere they make sense. Nothing you type is sent anywhere: the page runs entirely in your browser and only your own name and settings are remembered, on your device.</p>
+      <h3>Klinik's character limit</h3>
+      <p>Set your Klinik message limit in Settings (500 by default). When a message runs over, the composer swaps in shorter phrasing sentence by sentence, least important first, and warns you if it still does not fit.</p>
+      <p class="c-sources">Sources: <a href="https://www.england.nhs.uk/long-read/changes-to-the-gp-contract-in-2026-27/" target="_blank" rel="noopener">NHS England, Changes to the GP Contract in 2026/27</a> · <a href="https://www.england.nhs.uk/long-read/supplementary-information-to-support-changes-to-the-2026-27-gp-contract/" target="_blank" rel="noopener">NHS England, Supplementary information for the 2026/27 GP contract</a> · <a href="https://www.bma.org.uk/advice-and-support/gp-practices/gp-service-provision/gp-access-meeting-the-reasonable-needs-of-patients" target="_blank" rel="noopener">BMA, GP access: meeting the reasonable needs of patients</a> · <a href="https://www.gmc-uk.org/professional-standards/the-professional-standards/delegation-and-referral/delegation-and-referral" target="_blank" rel="noopener">GMC, Delegation and referral</a></p>
       </div>
-    </details>
-
-    <details id="settings">
-      <summary>Settings: Klinik limit, clinician roster, defaults</summary>
-      <div class="setgrid">
-        <div class="set"><label for="s-limit">Klinik character limit</label><input id="s-limit" type="number" min="100" max="5000" step="10" data-s="limit"><div class="help">Messages shorten automatically to fit.</div></div>
-        <div class="set"><label for="s-myDay">Your usual clinic day</label><input id="s-myDay" type="text" data-s="myDay" placeholder="Thursday"><div class="help">Used by "See me" bookings.</div></div>
-        <div class="set"><label for="s-gps">Doctors / ANPs, comma-separated (optional)</label><input id="s-gps" type="text" data-s="gps" placeholder="e.g. Dr Patel, Sam (ANP)"><div class="help">Names appear as quick picks; anyone can still type a name, e.g. a locum.</div></div>
-        <div class="set"><label for="s-pas">Physician associates (optional)</label><input id="s-pas" type="text" data-s="pas" placeholder="e.g. Daymie"></div>
-        <div class="set"><label for="s-pharms">Practice pharmacists (optional)</label><input id="s-pharms" type="text" data-s="pharms" placeholder="e.g. Priya, Tom"></div>
-        <div class="set"><label for="s-physios">First contact physiotherapists (optional)</label><input id="s-physios" type="text" data-s="physios" placeholder="e.g. Alex"></div>
-        <div class="set"><label for="s-nurses">Practice nurses (optional)</label><input id="s-nurses" type="text" data-s="nurses" placeholder="e.g. Jo, Chris"></div>
-        <div class="set"><label for="s-mhps">Mental health practitioners (optional)</label><input id="s-mhps" type="text" data-s="mhps" placeholder="e.g. Sam"></div>
-        <div class="set"><label for="s-mhpDay">Mental health practitioner clinic day</label><input id="s-mhpDay" type="text" data-s="mhpDay" placeholder="e.g. Tuesday"><div class="help">Leave blank if they work most days.</div></div>
-        <div class="set"><label for="s-mhpArea">Mental health practitioner eligibility area</label><input id="s-mhpArea" type="text" data-s="mhpArea" placeholder="e.g. Tower Hamlets"><div class="help">Borough the patient's registered address must be in; blank if no restriction.</div></div>
-        <div class="set wide"><label for="s-slot">Your GP-to-book slot label on EMIS</label><input id="s-slot" type="text" data-s="slot" placeholder="Tel Triage KLINIK DR TO BOOK ONLY"></div>
-        <div class="set wide"><label for="s-notes">Booking note shortcuts (separate with |)</label><input id="s-notes" type="text" data-s="noteShortcuts" placeholder="Take history and feedback to duty doctor | No need to call the patient - can send SMS"><div class="help">Shown as one-click chips under Booking notes.</div></div>
-        <div class="set"><label>Defaults</label><div class="togs" id="s-togs"></div><div class="help">Saved on this device only; each team member sets their own name and defaults.</div></div>
+      </details>
+      <details class="c-details" id="services"><summary class="c-details__summary">National services you can signpost to (England)</summary>
+      <div class="c-details__body">
+      <p class="c-prose">These are commissioned nationally, so they exist wherever the patient lives. Signposting to any of them is an "appropriate response" under the contract, provided the patient is told how to get there and what to do if it does not help. Checked against NHS England and nhs.uk pages in September 2026.</p>
+      <div class="l-scroll-x">
+      <table class="c-table">
+      <thead><tr><th>Service</th><th>Who and what</th><th>How the patient gets it</th></tr></thead>
+      <tbody>
+      <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/pharmacy-first/" target="_blank" rel="noopener">Pharmacy First</a></td><td>Seven pathways: earache 1-17, impetigo 1+, infected insect bite 1+, shingles 18+, sinusitis 12+, sore throat 5+, uncomplicated UTI in women 16-64. Plus minor illness and urgent repeat-medicine supply by referral. Pharmacist prescribing within the pathways is being added from autumn 2026.</td><td>Walk in or phone a pharmacy for the seven conditions; GP, UEC or 111 referral for the rest.</td></tr>
+      <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/nhs-pharmacy-contraception-service/" target="_blank" rel="noopener">NHS Pharmacy Contraception Service</a></td><td>Start or continue oral contraception; free oral emergency contraception since 29 October 2025. No GP registration needed.</td><td>Walk in at a participating pharmacy; nhs.uk pharmacy search shows which.</td></tr>
+      <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/nhs-community-pharmacy-blood-pressure-check-service/" target="_blank" rel="noopener">Pharmacy blood pressure check</a></td><td>Adults 40+ with no hypertension diagnosis (younger if at higher risk); clinic reading and ABPM if raised.</td><td>Walk in, or the practice refers, including for ABPM.</td></tr>
+      <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/nhs-new-medicine-service/" target="_blank" rel="noopener">New Medicine Service</a></td><td>Up to three pharmacist appointments after starting a medicine for a long-term condition, now including antidepressants.</td><td>Patient asks the dispensing pharmacy; practices can also refer.</td></tr>
+      <tr><td><a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/" target="_blank" rel="noopener">Pharmacy vaccinations</a></td><td>Flu and COVID-19 in season; one-off MenB programme for those born 1 Sep 2007 to 31 Aug 2008 and under-25s starting residential university or college, 20 July 2026 to 31 March 2027.</td><td>NHS App / nhs.uk national booking, or walk in at a participating pharmacy.</td></tr>
+      <tr><td><a href="https://www.nhs.uk/nhs-services/mental-health-services/find-nhs-talking-therapies-for-anxiety-and-depression/" target="_blank" rel="noopener">NHS Talking Therapies</a></td><td>Anxiety, depression, panic, phobias, OCD, PTSD; 18+ (16+ in some areas).</td><td>Self-referral online, no GP referral needed.</td></tr>
+      <tr><td><a href="https://www.nhs.uk/pregnancy/finding-out/finding-out-you-are-pregnant/" target="_blank" rel="noopener">Maternity</a></td><td>Booking and antenatal care.</td><td>Self-referral to the local maternity unit; form on the trust website.</td></tr>
+      <tr><td><a href="https://www.nhs.uk/nhs-services/sexual-health-services/find-a-sexual-health-clinic/" target="_blank" rel="noopener">Sexual health clinics</a></td><td>STI testing and treatment, all contraception including LARC, emergency contraception, PrEP/PEP, vaccines.</td><td>Open access, free, confidential, any age.</td></tr>
+      <tr><td><a href="https://www.england.nhs.uk/urgent-emergency-care/nhs-111/" target="_blank" rel="noopener">NHS 111</a></td><td>Urgent assessment, out-of-hours and UTC booking, urgent dental care, urgent medicine supply via Pharmacy First. <a href="https://www.england.nhs.uk/2024/08/nhs-111-offering-crisis-mental-health-support-for-the-first-time/" target="_blank" rel="noopener">Option 2</a> reaches a mental health professional 24/7, any age, family members too.</td><td>111.nhs.uk or call 111.</td></tr>
+      <tr><td><a href="https://www.nhs.uk/conditions/bowel-cancer-screening/" target="_blank" rel="noopener">Bowel screening</a></td><td>Automatic 50-74 every 2 years; 75+ can request a kit every 2 years.</td><td>Helpline 0800 707 6060.</td></tr>
+      <tr><td><a href="https://www.nhs.uk/tests-and-treatments/breast-screening-mammogram/who-breast-screening-is-for/" target="_blank" rel="noopener">Breast screening</a></td><td>Automatic 50 to 71st birthday; 71+ every 3 years on request.</td><td>Contact the local breast screening service.</td></tr>
+      <tr><td><a href="https://www.nhs.uk/conditions/abdominal-aortic-aneurysm-screening/" target="_blank" rel="noopener">AAA screening</a></td><td>Men invited at 65; missed invitations can be requested.</td><td>Contact the local AAA screening service.</td></tr>
+      <tr><td><a href="https://www.nhs.uk/better-health/" target="_blank" rel="noopener">NHS Better Health</a></td><td>Quit smoking (Personal Quit Plan), NHS Weight Loss Plan, Couch to 5K, Active 10, drink less.</td><td>Free online and app-based.</td></tr>
+      </tbody>
+      </table>
       </div>
-    </details>
-  </section>
-</div>
+      <h3>National, but the practice has to refer</h3>
+      <p class="c-prose">These are national programmes that are not self-referral, so they are a booking or admin task rather than a signpost: the <a href="https://www.england.nhs.uk/digital-weight-management/how-to-access-the-programme/" target="_blank" rel="noopener">NHS Digital Weight Management Programme</a> (18+, BMI 30+ or 27.5+ for Black, Asian and minority ethnic groups, with diabetes or hypertension; GP referral only), the Healthier You NHS Diabetes Prevention Programme (non-diabetic hyperglycaemia result needed), and the NHS Health Check (40-74, every 5 years). Discharge Medicines Service and the pharmacy smoking cessation service are referred from hospital, not general practice.</p>
+      <h3>Widespread but locally commissioned</h3>
+      <p class="c-prose">Minor Eye Conditions Service (MECS / CUES), self-referral to physiotherapy, podiatry, audiology, continence and community nursing, local stop-smoking services and drug and alcohol services are available in most areas but depend on the ICB or council, so check your own area before promising them. The composer keeps MECS and physio self-referral in the "Other" row for that reason.</p>
+      <p class="c-sources">Sources: <a href="https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/" target="_blank" rel="noopener">NHS England, community pharmacy services</a> · <a href="https://cpe.org.uk/wp-content/uploads/2026/05/Briefing-009.26-CPCF-arrangements-for-2026-27.pdf" target="_blank" rel="noopener">Community Pharmacy England, CPCF arrangements 2026/27</a> · <a href="https://www.england.nhs.uk/2025/10/free-morning-after-pill-women-high-street-pharmacies-nhs-expansion/" target="_blank" rel="noopener">NHS England, free emergency contraception at pharmacies (Oct 2025)</a> · <a href="https://ukhsa.blog.gov.uk/2026/06/12/who-is-eligible-for-the-new-one-off-menb-vaccine-programme/" target="_blank" rel="noopener">UKHSA, MenB programme eligibility (2026)</a> · <a href="https://www.england.nhs.uk/2024/04/nhs-self-referral-for-tests-and-appointments-for-hundreds-of-thousands-of-patients/" target="_blank" rel="noopener">NHS England, self-referral to community services</a></p>
+      </div>
+      </details>
+      <details class="c-details" id="settings">
+        <summary class="c-details__summary">Settings: Klinik limit, clinician roster, defaults</summary>
+        <form class="c-settings" id="settings-form" autocomplete="off">
+          <div class="c-setting"><label class="c-setting__label" for="s-limit">Klinik character limit</label><input class="c-input" id="s-limit" type="number" min="100" max="5000" step="10" name="limit"><span class="c-hint">Messages shorten automatically to fit.</span></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-myDay">Your usual clinic day</label><input class="c-input" id="s-myDay" type="text" name="myDay" placeholder="Thursday"><span class="c-hint">Used by "See me" bookings.</span></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-gps">Doctors / ANPs, comma-separated (optional)</label><input class="c-input" id="s-gps" type="text" name="gps" placeholder="e.g. Dr Patel, Sam (ANP)"><span class="c-hint">Names appear as quick picks; anyone can still type a name, e.g. a locum.</span></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-pas">Physician associates (optional)</label><input class="c-input" id="s-pas" type="text" name="pas" placeholder="e.g. Daymie"></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-pharms">Practice pharmacists (optional)</label><input class="c-input" id="s-pharms" type="text" name="pharms" placeholder="e.g. Priya, Tom"></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-physios">First contact physiotherapists (optional)</label><input class="c-input" id="s-physios" type="text" name="physios" placeholder="e.g. Alex"></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-nurses">Practice nurses (optional)</label><input class="c-input" id="s-nurses" type="text" name="nurses" placeholder="e.g. Jo, Chris"></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-mhps">Mental health practitioners (optional)</label><input class="c-input" id="s-mhps" type="text" name="mhps" placeholder="e.g. Sam"></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-mhpDay">Mental health practitioner clinic day</label><input class="c-input" id="s-mhpDay" type="text" name="mhpDay" placeholder="e.g. Tuesday"><span class="c-hint">Leave blank if they work most days.</span></div>
+          <div class="c-setting"><label class="c-setting__label" for="s-mhpArea">Mental health practitioner eligibility area</label><input class="c-input" id="s-mhpArea" type="text" name="mhpArea" placeholder="e.g. Tower Hamlets"><span class="c-hint">Borough the patient's registered address must be in; blank if no restriction.</span></div>
+          <div class="c-setting c-setting--wide"><label class="c-setting__label" for="s-slot">Your GP-to-book slot label on EMIS</label><input class="c-input" id="s-slot" type="text" name="slot" placeholder="Tel Triage KLINIK DR TO BOOK ONLY"></div>
+          <div class="c-setting c-setting--wide"><label class="c-setting__label" for="s-notes">Booking note shortcuts (separate with |)</label><input class="c-input" id="s-notes" type="text" name="noteShortcuts" placeholder="Take history and feedback to duty doctor | No need to call the patient - can send SMS"><span class="c-hint">Shown as one-click chips under Booking notes.</span></div>
+          <div class="c-setting"><span class="c-setting__label">Defaults</span><div id="settings-toggles"></div><span class="c-hint">Saved on this device only; each team member sets their own name and defaults.</span></div>
+        </form>
+      </details>
+    </footer>
+  </div>
 
-<div class="mobilebar">
-  <span class="count" id="count2">0 / 500</span>
-  <button class="primary" id="copy2" type="button">Copy message</button>
-</div>
+  <div class="c-mobilebar">
+    <output class="c-count" id="count-mobile" for="message">0 / 500</output>
+    <button class="c-btn c-btn--primary" id="copy-mobile" type="button">Copy message</button>
+  </div>
 
-<script>
-(function(){
-  'use strict';
-  const $ = (s, el=document) => el.querySelector(s);
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-  /* ---------- settings (per device) ---------- */
-  const DEFAULT_S = { name:'', limit:500, safetyDefault:true, breaks:true, gps:'', pas:'', pharms:'', physios:'', nurses:'', mhps:'', mhpDay:'Tuesday', mhpArea:'Tower Hamlets', slot:'Tel Triage KLINIK DR TO BOOK ONLY', myDay:'Thursday', noteShortcuts:'Take history and feedback to duty doctor | No need to call the patient - can send SMS after finding out the information' };
-  let S = Object.assign({}, DEFAULT_S);
-  try { const raw = localStorage.getItem('ktc.settings'); if (raw) S = Object.assign({}, DEFAULT_S, JSON.parse(raw)); } catch(e){}
-  function saveS(){ try { localStorage.setItem('ktc.settings', JSON.stringify(S)); } catch(e){} }
-  const names = csv => String(csv||'').split(',').map(s=>s.trim()).filter(Boolean);
-  const orList = a => a.length<=1 ? a.join('') : a.slice(0,-1).join(', ') + ' or ' + a[a.length-1];
-  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-  const dayOk = d => DAYS.includes(d) ? d : 'Thursday';
-
-  /* ---------- state ---------- */
-  const OUTCOMES = [
-    {id:'book', label:'Book appointment', rtype:'Appointment'},
-    {id:'mine', label:'My triage slots', rtype:'Appointment (with me)'},
-    {id:'contact', label:'Contact & check', rtype:'Request further information'},
-    {id:'signpost', label:'Signpost', rtype:'Direct to an appropriate service'},
-    {id:'admin', label:'Admin request', rtype:'Care by another method'},
-    {id:'done', label:'Dealt with', rtype:'Care by another method'},
-  ];
-  function fresh(outcome){
-    return {
-      outcome,
-      who:'anygp', named:'', namedCustom:'', person:'', personCustom:'', reason:'none', reasonCustom:'',
-      modality:'f2f', urgency:'soonest', day:dayOk(S.myDay), hub:false,
-      purpose:'none', purposeCustom:'', appResults:false,
-      fb:'self', fbResubmit:false, smsBook:true, mhpCheck:true, photos:'no',
-      safety: outcome==='book' || outcome==='contact' || outcome==='signpost' ? !!S.safetyDefault : false,
-      nosms: outcome==='mine', record:false,
-      list:'PM', upload:true,
-      check:'still', checkCustom:'', then:'f2f', settled:true,
-      service:'pharmacyfirst', serviceCustom:'', comeback:true, confirm:true, explain:true, plink:false,
-      adminType:'letter', adminCustom:'', adminList:false,
-      addList:true, complete:true, patientMsg:'',
-      notes:''
-    };
-  }
-  let st = fresh('book');
-
-  const PRESETS = [
-    {l:'F2F ASAP · any GP/ANP', o:'book', s:{who:'anygp', modality:'f2f', urgency:'soonest'}},
-    {l:'F2F ASAP · hub too', o:'book', s:{who:'anygp', modality:'f2f', urgency:'soonest', hub:true}},
-    {l:'Same day · urgent', o:'book', s:{who:'anygp', modality:'f2f', urgency:'today'}},
-    {l:'Tel · any doctor · next available', o:'book', s:{who:'anydr', modality:'tel', urgency:'routine'}},
-    {l:'Results · tel any doctor', o:'book', s:{who:'anydr', modality:'tel', urgency:'routine', purpose:'results', safety:false}},
-    {l:'Pharmacist · tel', o:'book', s:{who:'pharm', modality:'tel', urgency:'routine'}},
-    {l:'Physio (FCP) · first available', o:'book', s:{who:'fcp', modality:'either', urgency:'routine'}},
-    {l:'PA · next available', o:'book', s:{who:'pa', modality:'any', urgency:'routine'}},
-    {l:'Mental health practitioner · tel', o:'book', s:{who:'mhp', modality:'tel', urgency:'routine'}},
-    {l:'See me · clinic day · skin', o:'book', s:{who:'me', modality:'f2f', urgency:'day', reason:'skin'}},
-    {l:'My triage slots (PM)', o:'mine', s:{list:'PM'}},
-    {l:'Contact & re-check', o:'contact', s:{}},
-    {l:'Pharmacy First', o:'signpost', s:{service:'pharmacyfirst'}},
-    {l:'Contraception · pharmacy', o:'signpost', s:{service:'pcs', safety:false}},
-    {l:'Talking Therapies', o:'signpost', s:{service:'talking'}},
-    {l:'111 option 2 · mental health', o:'signpost', s:{service:'mh111', safety:false, comeback:false}},
-    {l:'MECS (eye)', o:'signpost', s:{service:'mecs'}},
-    {l:'NHS App self-book', o:'signpost', s:{service:'nhsapp', safety:false}},
-    {l:'Bloods · hub', o:'book', s:{who:'phleb', urgency:'routine', hub:true, safety:false}},
-    {l:'Smear · nurse', o:'book', s:{who:'nurse', modality:'f2f', urgency:'routine', purpose:'smear', safety:false}},
-    {l:'Travel clinic', o:'book', s:{who:'nurse', modality:'f2f', urgency:'routine', purpose:'travel', safety:false}},
-    {l:'Private letter', o:'admin', s:{adminType:'letter'}},
-    {l:'Dealt with · complete', o:'done', s:{}},
-  ];
-
-  /* ---------- phrase tables ---------- */
-  const MOD = {
-    f2f:{l:'Please book a face-to-face appointment', s:'Please book a face-to-face appt'},
-    tel:{l:'Please book a telephone consultation', s:'Please book a telephone consult'},
-    either:{l:'Please book the next available slot (face-to-face or telephone)', s:'Please book the next available slot (F2F or phone)'},
-    any:{l:'Please book the patient in', s:'Please book'}
-  };
-  const SAFETY = {l:'Please advise the patient: if things get worse before they are seen, contact us again the same day or call 111 (999 in an emergency).', s:'Safety-net: if worse before seen, contact us same day or call 111 (999 if emergency).'};
-  const SAFETY_SP = {l:'If symptoms get worse, they should contact us again the same day or call 111 (999 in an emergency).', s:'If worse: contact us same day or call 111 (999 if emergency).'};
-
-  /* National (England-wide) services a practice can signpost to. group: pharm | self | urgent | screen | life | local */
-  const SERVICES = [
-    {id:'pharmacyfirst', group:'pharm', label:'Pharmacy First', safety:true, comeback:true,
-      main:{l:'Please direct the patient to Pharmacy First at a community pharmacy.', s:'Please direct the patient to Pharmacy First.'},
-      covers:{l:'It covers earache (age 1-17), impetigo, infected insect bites, shingles (18+), sinusitis (12+), sore throat (5+) and uncomplicated UTI in women 16-64 - the pharmacist can assess and supply treatment if needed.', s:'Covers earache, impetigo, insect bites, shingles, sinusitis, sore throat and UTI (women 16-64).'},
-      link:'https://www.nhs.uk/nhs-services/pharmacies/how-pharmacies-can-help/'},
-    {id:'pcs', group:'pharm', label:'Contraception (pharmacy)', safety:false, comeback:true,
-      main:{l:'Please direct the patient to the NHS Pharmacy Contraception Service at a community pharmacy.', s:'Please direct the patient to the pharmacy contraception service.'},
-      covers:{l:'Pharmacies can start or continue the contraceptive pill and supply free emergency contraception - no appointment with us is needed.', s:'Pharmacies can start/continue the pill and give free emergency contraception.'},
-      link:'https://www.nhs.uk/nhs-services/pharmacies/how-pharmacies-can-help/'},
-    {id:'bp', group:'pharm', label:'Blood pressure check (pharmacy)', safety:false, comeback:true,
-      main:{l:'Please direct the patient to a community pharmacy for a free NHS blood pressure check.', s:'Please direct the patient to a pharmacy for a free BP check.'},
-      covers:{l:'For adults aged 40+ without a diagnosis of high blood pressure; the pharmacy can also arrange 24-hour monitoring if the reading is raised.', s:'For adults 40+ not known to have high BP; 24-hour monitoring available.'},
-      link:'https://www.nhs.uk/nhs-services/pharmacies/how-pharmacies-can-help/'},
-    {id:'nms', group:'pharm', label:'New Medicine Service', safety:false, comeback:false,
-      main:{l:'Please tell the patient they can ask their pharmacy for the New Medicine Service.', s:'Please tell the patient to ask the pharmacy for the New Medicine Service.'},
-      covers:{l:'Up to 3 free pharmacist appointments to help with a newly started medicine, including antidepressants.', s:'Up to 3 free pharmacist appointments for a new medicine.'},
-      link:'https://www.nhs.uk/nhs-services/pharmacies/how-pharmacies-can-help/'},
-    {id:'vacc', group:'pharm', label:'Flu / COVID / MenB jab', safety:false, comeback:false,
-      main:{l:'Please direct the patient to book their vaccination via the NHS App or nhs.uk, or walk in at a participating community pharmacy.', s:'Please direct the patient to book the jab via the NHS App/nhs.uk or a pharmacy.'},
-      covers:{l:'Flu and COVID-19 jabs are bookable nationally in season; the one-off MenB programme for 17-18 year olds and new university students runs at pharmacies until March 2027.', s:'Flu/COVID in season; one-off MenB for 17-18s and new students until March 2027.'},
-      link:'https://www.nhs.uk/nhs-services/pharmacies/how-pharmacies-can-help/'},
-    {id:'supply', group:'urgent', label:'Urgent medicine supply (111)', safety:false, comeback:true,
-      main:{l:'Please ask the patient to contact NHS 111 (online or phone) for an urgent supply of their repeat medicine through a pharmacy.', s:'Please ask the patient to use NHS 111 for an urgent pharmacy supply of their medicine.'},
-      covers:{l:'111 can refer to Pharmacy First for an emergency supply when a prescription has run out.', s:'111 refers to Pharmacy First for an emergency supply.'},
-      link:'https://111.nhs.uk'},
-    {id:'talking', group:'self', label:'NHS Talking Therapies', safety:true, comeback:true,
-      main:{l:'Please signpost the patient to NHS Talking Therapies - they can self-refer online without a GP referral.', s:'Please signpost the patient to NHS Talking Therapies (self-referral online).'},
-      covers:{l:'Free NHS treatment for anxiety, depression, panic, phobias, OCD and PTSD; for adults 18+ (16+ in some areas).', s:'Free NHS help for anxiety, depression, panic, phobias, OCD, PTSD; 18+.'},
-      link:'https://www.nhs.uk/nhs-services/mental-health-services/find-nhs-talking-therapies-for-anxiety-and-depression/'},
-    {id:'maternity', group:'self', label:'Maternity self-referral', safety:false, comeback:true,
-      main:{l:'Please signpost the patient to self-refer to the local maternity service - no GP appointment is needed to start pregnancy care.', s:'Please signpost the patient to self-refer to the local maternity service.'},
-      covers:{l:'The self-referral form is on the maternity unit or hospital trust website; they should do this as early as possible.', s:'Self-referral form is on the maternity unit website.'},
-      link:'https://www.nhs.uk/pregnancy/finding-out/finding-out-you-are-pregnant/'},
-    {id:'sexual', group:'self', label:'Sexual health clinic', safety:false, comeback:true,
-      main:{l:'Please signpost the patient to a sexual health clinic - open access, free and confidential, no referral needed.', s:'Please signpost the patient to a sexual health clinic (open access, free).'},
-      covers:{l:'STI testing and treatment, all contraception including coils and implants, emergency contraception, PrEP and PEP.', s:'STI testing, all contraception incl. coils/implants, emergency contraception.'},
-      link:'https://www.nhs.uk/nhs-services/sexual-health-services/find-a-sexual-health-clinic/'},
-    {id:'nhs111', group:'urgent', label:'NHS 111 (urgent / dental)', safety:false, comeback:false,
-      main:{l:'Please advise the patient to use NHS 111 online or call 111 for this.', s:'Please advise the patient to use NHS 111 (online or phone).'},
-      covers:{l:'111 assesses urgent problems, can book urgent treatment centre or out-of-hours slots, and arranges urgent dental care for people without a dentist.', s:'111 can book UTC/out-of-hours slots and urgent dental care.'},
-      link:'https://111.nhs.uk'},
-    {id:'mh111', group:'urgent', label:'111 option 2 (mental health)', safety:false, comeback:false,
-      main:{l:'Please advise the patient to call NHS 111 and select the mental health option (option 2) for urgent mental health support.', s:'Please advise the patient to call 111 and choose option 2 (mental health).'},
-      covers:{l:'Available 24/7 across England for people of any age in a mental health crisis, and for family members who are worried about someone.', s:'24/7, any age, also for worried family members.'},
-      link:'https://111.nhs.uk'},
-    {id:'bowel', group:'screen', label:'Bowel screening kit', safety:false, comeback:false,
-      main:{l:'Please tell the patient they can request a bowel screening kit themselves by calling the bowel screening helpline on 0800 707 6060.', s:'Please tell the patient to request a bowel screening kit on 0800 707 6060.'},
-      covers:{l:'Screening is automatic from 50 to 74 every 2 years; people aged 75+ can ask for a kit every 2 years.', s:'Automatic 50-74; 75+ can ask every 2 years.'},
-      link:'https://www.nhs.uk/conditions/bowel-cancer-screening/'},
-    {id:'breast', group:'screen', label:'Breast screening (71+)', safety:false, comeback:false,
-      main:{l:'Please tell the patient they can arrange breast screening themselves by contacting the local breast screening service.', s:'Please tell the patient to contact the local breast screening service directly.'},
-      covers:{l:'Invitations are automatic from 50 up to the 71st birthday; from 71 screening is still available every 3 years on request.', s:'Automatic 50-70; 71+ every 3 years on request.'},
-      link:'https://www.nhs.uk/tests-and-treatments/breast-screening-mammogram/who-breast-screening-is-for/'},
-    {id:'aaa', group:'screen', label:'AAA screening (men 65+)', safety:false, comeback:false,
-      main:{l:'Please tell the patient to contact the local AAA screening service directly to arrange the scan.', s:'Please tell the patient to contact the local AAA screening service.'},
-      covers:{l:'Men are invited the year they turn 65; anyone who missed the invitation can ask the service directly.', s:'Men invited at 65; missed invitations can be requested.'},
-      link:'https://www.nhs.uk/conditions/abdominal-aortic-aneurysm-screening/'},
-    {id:'betterhealth', group:'life', label:'NHS Better Health', safety:false, comeback:false,
-      main:{l:'Please signpost the patient to NHS Better Health for free online support.', s:'Please signpost the patient to NHS Better Health (nhs.uk/better-health).'},
-      covers:{l:'Free NHS tools to quit smoking, lose weight, get active (Couch to 5K, Active 10) and drink less.', s:'Free quit-smoking, weight-loss, activity and drink-less tools.'},
-      link:'https://www.nhs.uk/better-health/'},
-    {id:'mecs', group:'local', label:'MECS (eyes, local)', safety:true, comeback:true,
-      main:{l:'Please signpost the patient to the Minor Eye Conditions Service (MECS) at a participating optician.', s:'Please signpost the patient to MECS (minor eye conditions) at an optician.'},
-      covers:{l:'Free NHS assessment of red, sore, gritty or watery eyes, flashes and floaters, and sudden minor vision changes.', s:'Free NHS assessment of red/sore eyes, flashes and floaters.'},
-      link:''},
-    {id:'msk', group:'local', label:'Physio self-referral (local)', safety:true, comeback:true,
-      main:{l:'Please signpost the patient to self-refer to the local NHS physiotherapy (MSK) service.', s:'Please signpost the patient to self-refer to local NHS physiotherapy.'},
-      covers:{l:'Self-referral is available in most areas via the service website; if not available locally, please book with our first contact physiotherapist instead.', s:'Self-refer via the service website, or book our first contact physio.'},
-      link:''}
-  ];
-  const SERVICE = id => SERVICES.find(s => s.id===id);
-  const NOSMS = {l:'Please do not send a text message to the patient.', s:'No text to patient please.'};
-  const RECORD = {l:'Please record the outcome on EMIS.', s:'Record on EMIS.'};
-  const REASONS = {
-    skin:{me:'I have extra training in skin problems', them:'they have extra training in skin problems'},
-    continuity:{me:'I know the background, which keeps continuity', them:'they know the background, which keeps continuity'},
-    reviewing:{me:'I am already reviewing this', them:'they are already reviewing this'}
-  };
-  const tidy = s => { s = String(s||'').trim(); if(!s) return ''; return /[.!?]$/.test(s) ? s : s + '.'; };
-  const namedName = () => (st.named || st.namedCustom || '').trim();
-  /* NHS App self-booking is only offered for a face-to-face with a doctor (and a phone call with a doctor, which needs no fallback) */
-  const appAvail = () => ['anygp','anydr','me','named'].includes(st.who) && st.modality!=='tel' && st.purpose==='none';
-  const effFb = () => { let f = st.fb || 'self'; if(!appAvail() && (f==='self' || f==='both')) f = 'next'; return f; };
-  /* Photos are requested ahead of a telephone consultation with a doctor */
-  const photosAvail = () => ['anygp','anydr','me','named'].includes(st.who) && st.modality==='tel';
-  const personName = () => (st.person || st.personCustom || '').trim();
-
-  function whoPhrase(){
-    const p = personName();
-    const withRole = role => p.includes('(') ? `${p}, ${role}` : `${p} (${role})`;
-    switch(st.who){
-      case 'anygp':
-        if(st.modality==='tel') return {l:'any doctor', s:'any doctor'};
-        if(st.modality==='either') return {l:'any doctor, or ANP if face-to-face', s:'any doctor (ANP if F2F)'};
-        return {l:'any doctor/ANP', s:'any doctor/ANP'};
-      case 'anydr': return {l:'any doctor', s:'any doctor'};
-      case 'me': return {l:'me', s:'me'};
-      case 'named': { const n = namedName() || 'the named clinician'; return {l:n, s:n}; }
-      case 'pa': { if(p) return {l:withRole('PA'), s:withRole('PA')}; return {l:'the physician associate (PA)', s:'the PA'}; }
-      case 'mhp': { if(p) return {l:withRole('mental health practitioner'), s:withRole('MHP')}; return {l:'the mental health practitioner', s:'the MHP'}; }
-      case 'pharm': { if(p) return {l:withRole('practice pharmacist'), s:p}; const n = orList(names(S.pharms)); return {l: n ? `a practice pharmacist (${n})` : 'a practice pharmacist', s:'a practice pharmacist'}; }
-      case 'fcp': { if(p) return {l:withRole('first contact physiotherapist'), s:p}; return {l:'the first contact physiotherapist', s:'the FCP'}; }
-      case 'nurse': { if(p) return {l:withRole('practice nurse'), s:p}; const n = names(S.nurses).join('/'); return {l: n ? `the practice nurse (${n})` : 'the practice nurse', s:'the practice nurse'}; }
-    }
-    return {l:'', s:''};
-  }
-  function purposePhrase(){
-    if(st.who==='phleb') return '';
-    switch(st.purpose){
-      case 'smear': return ' for a smear test';
-      case 'results': return ' to discuss their test results';
-      case 'medreview': return ' for a medication review';
-      case 'followup': return ' for a follow-up';
-      case 'other': return st.purposeCustom.trim() ? ' for ' + st.purposeCustom.trim() : '';
-    }
-    return '';
-  }
-  function reasonSentence(){
-    const target = st.who==='me' ? 'me' : (namedName() || 'them');
-    if(st.reason==='custom') return st.reasonCustom.trim() ? `Please explain it is best to see ${target} - ${tidy(st.reasonCustom)}` : '';
-    const r = REASONS[st.reason]; if(!r) return '';
-    return `Please explain it is best to see ${target} as ${st.who==='me' ? r.me : r.them}.`;
-  }
-
-  /* ---------- fragment builders ---------- */
-  function frags(){
-    const f = [];
-    const add = (l, s, p=5) => { if(l) f.push({l, s: s || l, p}); };
-    const day = dayOk(st.day);
-    if(st.outcome==='book'){
-      const who = whoPhrase(), mod = MOD[st.modality], purpose = purposePhrase();
-      if(st.who==='phleb'){
-        const tail = st.urgency==='today' ? ' today (urgent)' : st.urgency==='soonest' ? ' as soon as possible' : st.urgency==='day' ? ` on ${day}` : '';
-        add(`Please call the patient to help them book a blood test (phlebotomy) appointment${tail}.`, `Please call the patient to book a blood test (phlebotomy)${tail}.`, 5);
-        if(st.hub) add('Please use the hub for this if available.', 'Use the hub if available.', 3);
-      } else if(st.who==='mhp'){
-        const mday = (S.mhpDay||'').trim(), area = (S.mhpArea||'').trim();
-        add(`Please book a telephone consultation with ${who.l} in the next available ${mday ? mday + ' ' : ''}clinic.`, `Please book a telephone consult with ${who.s} in the next ${mday ? mday + ' ' : ''}clinic.`, 5);
-        if(st.mhpCheck && area) add(`Please check first that the patient's registered address is in ${area} - the service is only for ${area} residents; if it is not, please let me know and I will re-triage.`, `Check the registered address is in ${area} (${area} residents only); if not, let me know.`, 4);
-        if(st.smsBook) add('Please just book it and text the patient the date they will receive the call - no need to phone them first.', 'Book it and text the patient the date of the call - no need to phone first.', 3);
-      } else if(st.who==='nurse' && st.purpose==='travel'){
-        const tail = {today:'today', soonest:'as soon as possible', routine:'when next available', day:`on ${day}`}[st.urgency];
-        add(`Please book the patient into the travel clinic ${tail}.`, null, 5);
-        if(st.urgency==='day') add(`If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
-        if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
-      } else {
-        const tel = st.modality==='tel';
-        switch(st.urgency){
-          case 'today':
-            add(`${mod.l}${purpose} with ${who.l} today - clinically urgent, same day please.`, `${mod.s}${purpose} with ${who.s} today - clinically urgent.`, 5);
-            if(tel) add('If no telephone slot is available today, please message me straight away.', 'No slot today: message me straight away.', 4);
-            else add('If nothing is available today, or they cannot attend today, please message me straight away.', 'No slot today or cannot attend: message me straight away.', 4);
-            break;
-          case 'soonest':
-            add(`${mod.l}${purpose} ASAP with ${who.l} - next soonest slot please, so we do not waste access.`, `${mod.s}${purpose} ASAP with ${who.s} - next soonest slot please.`, 5);
-            break;
-          case 'routine':
-            add(`${mod.l}${purpose} with ${who.l} when next available.`, `${mod.s}${purpose} with ${who.s} when next available.`, 5);
-            break;
-          case 'day':
-            add(`${mod.l}${purpose} with ${who.l} on ${day} (earliest appointment).`, `${mod.s}${purpose} with ${who.s} on ${day}.`, 5);
-            if(tel) add(`If there is no slot this ${day}, please book the following week.`, `If not this ${day}, the following week.`, 4);
-            else add(`If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
-            break;
-        }
-        if((st.who==='me' || st.who==='named') && st.reason!=='none') add(reasonSentence(), null, 3);
-        if(st.purpose==='results' && st.appResults) add('Please let the patient know the results can be viewed in the NHS App before the call.', 'Results are viewable in the NHS App before the call.', 2);
-        if(photosAvail() && st.photos==='yes') add('Please ask the patient to send in photos of the problem before the call.', 'Ask the patient to send photos before the call.', 4);
-        if(st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
-        if(tel){
-          if(st.smsBook) add('Please just book it and text the patient the date they will receive the call - no need to phone them first.', 'Book it and text the patient the date of the call - no need to phone first.', 3);
-        } else if(st.urgency!=='today'){
-          const fb = effFb();
-          if(fb==='self' || fb==='both') add(`If they cannot attend the slot offered, please encourage them to self-book a suitable appointment via the NHS App or online${fb==='both' ? ', or book the next suitable slot for them' : ''}.`, `If unable to attend, please help them self-book via the NHS App/online${fb==='both' ? ' or book the next suitable slot' : ''}.`, 3);
-          else if(fb==='next') add('If they cannot attend the slot offered, please book the next suitable slot for them.', 'If unable to attend, book the next suitable slot.', 3);
-          if(st.fbResubmit) add('They are also welcome to send a new online request if their needs change.', 'New online request welcome if needs change.', 1);
-        }
-      }
-      if(st.safety){
-        if(st.who==='mhp') add(`Please ${st.smsBook ? 'include in the text' : 'advise the patient'}: if things get worse before the call, contact us again the same day or call 111 and choose option 2 for mental health (999 in an emergency).`, 'Safety-net: if worse before the call, contact us same day or call 111 option 2 (999 if emergency).', 2);
-        else if(st.modality==='tel' && st.who!=='phleb' && st.smsBook) add('Please include in the text: if things get worse before the call, contact us again the same day or call 111 (999 in an emergency).', 'Text should include: if worse before the call, contact us same day or call 111 (999 if emergency).', 2);
-        else if(st.modality==='tel' && st.who!=='phleb') add('Please advise the patient: if things get worse before the call, contact us again the same day or call 111 (999 in an emergency).', 'Safety-net: if worse before the call, contact us same day or call 111 (999 if emergency).', 2);
-        else add(SAFETY.l, SAFETY.s, 2);
-      }
-      if(st.nosms) add(NOSMS.l, NOSMS.s, 2);
-      if(st.record) add(RECORD.l, RECORD.s, 1);
-    }
-    else if(st.outcome==='mine'){
-      const slot = (S.slot||'').trim() || 'Tel Triage KLINIK DR TO BOOK ONLY';
-      add(`On my ${st.list} list on EMIS, please book this case into one of the blue '${slot}' slots.`, `Please book into one of my blue '${slot}' slots (${st.list} list on EMIS).`, 5);
-      if(st.upload) add('Make sure it is also uploaded on the morning list as usual.', 'Also upload to the morning list as usual.', 3);
-      if(st.nosms) add(NOSMS.l, NOSMS.s, 4);
-      if(st.record) add(RECORD.l, RECORD.s, 1);
-    }
-    else if(st.outcome==='contact'){
-      const custom = st.check==='custom';
-      if(custom) add(`Please contact the patient and ask: ${tidy(st.checkCustom) || '[your question].'}`, null, 5);
-      else add('Please contact the patient and check whether they still have this problem.', 'Please contact the patient: do they still have this problem?', 5);
-      const cond = custom ? 'If the problem is ongoing' : 'If they do';
-      if(st.then==='f2f'){
-        add(`${cond}, please offer a face-to-face review ASAP with the next available GP/ANP.`, `${cond}, offer F2F ASAP with the next available GP/ANP.`, 4);
-        add('If they cannot attend today, please help them self-book the next suitable slot via the NHS App or online.', 'If unable to attend today, help them self-book the next suitable slot.', 3);
-      } else if(st.then==='tel'){
-        add(`${cond}, please book a telephone consultation ASAP with the next available doctor and text them the date they will receive the call.`, `${cond}, book a telephone consult ASAP with the next available doctor and text them the date of the call.`, 4);
-      } else if(st.then==='me'){
-        add(`${cond}, please book them in with me at the earliest slot.`, null, 4);
-      } else {
-        add('Please add their answer to the case and send it back to me.', 'Add their answer to the case and send back to me.', 4);
-      }
-      if(st.then!=='report' && st.settled) add('If it has settled, please complete the case.', 'If settled, complete the case.', 2);
-      if(st.safety) add(SAFETY.l, SAFETY.s, 2);
-      if(st.nosms) add(NOSMS.l, NOSMS.s, 2);
-      if(st.record) add(RECORD.l, RECORD.s, 1);
-    }
-    else if(st.outcome==='signpost'){
-      const sv = st.service, svc = SERVICE(sv);
-      if(svc){
-        add(svc.main.l, svc.main.s, 5);
-        if(st.explain) add(svc.covers.l, svc.covers.s, 3);
-      }
-      else if(sv==='nhsapp') add('Please show the patient how to book an appointment via the NHS App, or talk them through it while on the phone - explain it is the easiest way to book.', 'Please talk the patient through booking via the NHS App - the easiest way to book.', 5);
-      else add(`Please signpost the patient to ${st.serviceCustom.trim() || '[service]'}.`, null, 5);
-      if(sv==='nhsapp'){
-        if(st.confirm) add('Please make sure they have secured a suitable slot before ending the call.', 'Check they have a slot booked before ending the call.', 4);
-      } else if(st.comeback){
-        add('Please explain that if they do not get help there, they should contact us again.', 'If no help there, they should contact us again.', 4);
-      }
-      if(st.safety) add(SAFETY_SP.l, SAFETY_SP.s, 2);
-      if(st.record) add(RECORD.l, RECORD.s, 1);
-      if(st.plink && svc && svc.link) add(`Please text the patient this NHS link: ${svc.link}`, null, 1);
-    }
-    else if(st.outcome==='admin'){
-      if(st.adminType==='letter'){
-        add('This is a private letter request. Please contact the patient and explain the procedure and fees for private letters.', 'Private letter request: please contact the patient and explain the procedure and fees.', 5);
-        if(st.adminList) add('Once agreed, please add it to my admin list.', 'Then add to my admin list.', 3);
-      } else {
-        add(tidy(st.adminCustom) || 'Please [describe the request].', null, 5);
-      }
-      if(st.record) add(RECORD.l, RECORD.s, 1);
-    }
-    else if(st.outcome==='done'){
-      add('I have dealt with this case.', null, 5);
-      if(st.addList && st.complete) add('Please put it on my EMIS list (if not already done) and complete the case.', 'Please add to my EMIS list (if not already) and complete the case.', 4);
-      else if(st.addList) add('Please put it on my EMIS list (if not already done).', 'Please add to my EMIS list (if not already).', 4);
-      else if(st.complete) add('Please complete the case.', null, 4);
-      const pm = st.patientMsg.trim();
-      if(pm) add(`Please text the patient: "${pm}"`, null, 3);
-      else if(st.nosms) add('No text message to the patient is needed.', 'No text to patient needed.', 2);
-    }
-    return f;
-  }
-
-  function compose(){
-    const f = frags();
-    const name = (S.name||'').trim();
-    const greet = 'Hi Team,';
-    const sign = name ? `Thanks, ${name}` : 'Thanks';
-    const sep = S.breaks ? '\n' : ' ';
-    const short = new Set();
-    const notes = st.notes.trim() ? sep + 'Booking notes: ' + tidy(st.notes) : '';
-    const render = () => greet + sep + f.map((x,i) => short.has(i) ? x.s : x.l).join(' ') + notes + sep + sign;
-    let text = render(), compacted = false;
-    const limit = +S.limit || 500;
-    if(text.length > limit){
-      const order = f.map((x,i)=>i).sort((a,b)=> f[a].p - f[b].p);
-      for(const i of order){
-        if(text.length <= limit) break;
-        if(f[i].s !== f[i].l){ short.add(i); compacted = true; text = render(); }
-      }
-    }
-    return {text, compacted, over: text.length > limit, limit};
-  }
-
-  /* ---------- rendering ---------- */
-  const el = {
-    presets:$('#presets'), outcomes:$('#outcomes'), options:$('#options'), msg:$('#msg'),
-    count:$('#count'), count2:$('#count2'), meter:$('#meter'), note:$('#note'), regen:$('#regen'),
-    copy:$('#copy'), copy2:$('#copy2'), name:$('#name'), signer:$('#signer')
-  };
-  let edited = false;
-
-  function renderPresets(){
-    el.presets.innerHTML = PRESETS.map((p,i)=>`<button type="button" class="chip" data-p="${i}">${esc(p.l)}</button>`).join('');
-  }
-  function renderOutcomes(){
-    el.outcomes.innerHTML = OUTCOMES.map(o=>`<button type="button" class="${st.outcome===o.id?'on':''}" data-o="${o.id}" aria-pressed="${st.outcome===o.id}">${esc(o.label)}</button>`).join('');
-  }
-  const row = (label, inner, hint) => `<div class="row"><div class="rl">${label}${hint?`<span class="rh">${esc(hint)}</span>`:''}</div><div class="rc">${inner}</div></div>`;
-  const chips = (key, opts, extra='') => `<div class="chips">${opts.map(o=>`<button type="button" class="chip${st[key]===o.v?' on':''}${o.tone?' t-'+o.tone:''}" data-k="${key}" data-v="${esc(o.v)}" aria-pressed="${st[key]===o.v}"${extra}>${o.tone?'<i class="dot"></i>':''}${esc(o.l)}</button>`).join('')}</div>`;
-  const togs = list => `<div class="togs">${list.map(t=>`<button type="button" role="switch" aria-checked="${!!st[t.k]}" class="tog${st[t.k]?' on':''}" data-t="${t.k}"><span class="sw"></span><span>${esc(t.l)}</span></button>`).join('')}</div>`;
-  const txt = (key, ph) => `<input type="text" class="txt" data-x="${key}" placeholder="${esc(ph)}" value="${esc(st[key])}" autocomplete="off">`;
-  const nameChips = (key, list, anyLabel, extra='') => chips(key, [{v:'', l:anyLabel}].concat(list.map(n=>({v:n, l:n}))), extra);
-  const noteChipsHtml = () => {
-    const shortcuts = String(S.noteShortcuts||'').split('|').map(s=>s.trim()).filter(Boolean);
-    return shortcuts.length ? `<div class="chips">${shortcuts.map(n=>`<button type="button" class="chip${st.notes.trim()===n?' on':''}" data-note="${esc(n)}" aria-pressed="${st.notes.trim()===n}">${esc(n)}</button>`).join('')}</div>` : '';
-  };
-
-  /* Option definitions for the current state, shared by both layouts */
-  function defs(){
-    const d = {};
-    d.URG = [
-      {v:'today', l:'Today (clinically urgent)', tone:'crit'},
-      {v:'soonest', l:'Next soonest slot', tone:'warn'},
-      {v:'routine', l:'When next available', tone:'ok'},
-      {v:'day', l:'Specific day'}
-    ];
-    d.common = [
-      {k:'safety', l:'Safety-net line for patient'},
-      {k:'nosms', l:'No text message to patient'},
-      {k:'record', l:'Record outcome on EMIS'}
-    ];
-    d.whoOpts = [
-      {v:'anygp', l:'Any doctor/ANP'},
-      {v:'anydr', l:'Any doctor'},
-      {v:'me', l:'Me'},
-      {v:'named', l:'Named doctor/ANP'},
-      {v:'pa', l:'Physician associate (PA)'},
-      {v:'mhp', l:'Mental health practitioner'},
-      {v:'pharm', l:'Pharmacist'},
-      {v:'fcp', l:'Physio (FCP)'},
-      {v:'nurse', l:'Practice nurse'},
-      {v:'phleb', l:'Phlebotomy'}
-    ];
-    d.mhpHint = `Telephone only${(S.mhpDay||'').trim() ? ', ' + S.mhpDay.trim() + ' clinic' : ''}${(S.mhpArea||'').trim() ? ', ' + S.mhpArea.trim() + ' residents' : ''}`;
-    d.whoHint = st.who==='mhp' ? d.mhpHint : st.modality==='tel' ? 'Telephone consultations are with a doctor' : '';
-    d.hasPerson = ['pharm','fcp','nurse','pa','mhp'].includes(st.who);
-    d.personRoster = d.hasPerson ? names({pharm:S.pharms, fcp:S.physios, nurse:S.nurses, pa:S.pas, mhp:S.mhps}[st.who]) : [];
-    d.anyLabel = {pharm:'Any pharmacist', fcp:'Any physio', nurse:'Any nurse', pa:'Any PA', mhp:'The MHP'}[st.who] || '';
-    d.gpRoster = names(S.gps);
-    d.reasonOpts = [{v:'none', l:'No reason given'},{v:'skin', l:'Extra training in skin'},{v:'continuity', l:'Continuity'},{v:'reviewing', l:'Already reviewing'},{v:'custom', l:'Other'}];
-    d.purposeOpts = st.who==='nurse' ? [{v:'none', l:'Not specified'},{v:'smear', l:'Smear test'},{v:'travel', l:'Travel clinic'},{v:'other', l:'Other'}]
-      : (st.who!=='phleb' && st.who!=='mhp') ? [{v:'none', l:'Not specified'},{v:'results', l:'Test results'},{v:'medreview', l:'Medication review'},{v:'followup', l:'Follow-up'},{v:'other', l:'Other'}] : null;
-    d.purposePh = st.who==='nurse' ? 'e.g. a blood pressure check' : 'e.g. a blood pressure review';
-    d.showModality = st.who!=='phleb' && st.who!=='mhp' && !(st.who==='nurse' && st.purpose==='travel');
-    d.modalityOpts = [{v:'f2f', l:'Face-to-face'},{v:'tel', l:'Telephone'},{v:'either', l:'Either, first available'},{v:'any', l:'Not specified'}];
-    d.showUrgency = st.who!=='mhp';
-    const opts = [];
-    if(st.who==='phleb') opts.push({k:'hub', l:'Use the hub if available'});
-    else if(st.who==='mhp') opts.push({k:'mhpCheck', l:`Check registered address is in ${(S.mhpArea||'').trim() || 'the eligible area'}`});
-    else opts.push({k:'hub', l:'Hub slots can be used'});
-    if(st.purpose==='results') opts.push({k:'appResults', l:'Tell patient results are viewable in the NHS App'});
-    d.showPhotos = photosAvail();
-    d.photoOpts = [{v:'no', l:'No photos needed'},{v:'yes', l:'Yes, ask the patient to send photos'}];
-    d.showFb = st.who!=='phleb' && st.modality!=='tel' && st.urgency!=='today';
-    d.appAvail = appAvail();
-    d.fbOpts = d.appAvail
-      ? [{v:'self', l:'Self-book on the NHS App'},{v:'next', l:'Team books the next suitable slot'},{v:'both', l:'Either'},{v:'none', l:'Say nothing'}]
-      : [{v:'next', l:'Team books the next suitable slot'},{v:'none', l:'Say nothing'}];
-    d.fbHint = d.appAvail ? 'NHS App self-booking is available for this slot type' : 'NHS App self-booking is not available for this slot type';
-    if(st.who!=='phleb' && st.modality==='tel'){
-      opts.push({k:'smsBook', l:'Book it and text the patient the date of the call (no phone call first)'});
-    } else if(d.showFb){
-      opts.push({k:'fbResubmit', l:'New online request welcome if needs change'});
-    }
-    d.bookToggles = opts.concat(d.common);
-    d.optHint = st.modality==='tel' && st.who!=='phleb' ? 'Phone slots are allocated, not offered' : st.urgency==='today' ? 'Same-day path escalates to you if no slot' : '';
-    d.listOpts = [{v:'AM', l:'AM list'},{v:'PM', l:'PM list'}];
-    d.listHint = `Slot label: '${(S.slot||'').trim() || 'Tel Triage KLINIK DR TO BOOK ONLY'}'`;
-    d.mineToggles = [{k:'upload', l:'Also upload to the morning list'}, d.common[1], d.common[2]];
-    d.checkOpts = [{v:'still', l:'Do they still have the problem?'},{v:'custom', l:'A specific question'}];
-    d.thenOpts = [{v:'f2f', l:'F2F ASAP, next available GP/ANP'},{v:'tel', l:'Telephone ASAP, next available doctor'},{v:'me', l:'Book with me'},{v:'report', l:'Just send the answer back to me'}];
-    d.contactToggles = [{k:'settled', l:'Complete the case if it has settled'}].concat(d.common);
-    const byGroup = g => SERVICES.filter(s => s.group===g).map(s => ({v:s.id, l:s.label}));
-    d.serviceGroups = [
-      {l:'Pharmacy', hint:'National, walk in or GP referral', opts:byGroup('pharm')},
-      {l:'Self-refer', hint:'National, no GP referral needed', opts:byGroup('self')},
-      {l:'Urgent', hint:'NHS 111 routes', opts:byGroup('urgent')},
-      {l:'Screening', hint:'Patient can contact the service', opts:byGroup('screen')},
-      {l:'Other', hint:'Local services vary by area', opts:byGroup('life').concat([{v:'nhsapp', l:'NHS App self-booking'}], byGroup('local'), [{v:'other', l:'Other service'}])}
-    ];
-    const svc = SERVICE(st.service);
-    const t = st.service==='nhsapp' ? [{k:'confirm', l:'Confirm a slot is secured before ending the call'}] : [{k:'comeback', l:'Contact us again if it does not help'}];
-    if(svc) t.push({k:'explain', l:'Say what the service covers'});
-    if(svc && svc.link) t.push({k:'plink', l:'Ask the team to text the NHS link'});
-    d.signpostToggles = t.concat([d.common[0], d.common[2]]);
-    d.adminOpts = [{v:'letter', l:'Private letter or report'},{v:'other', l:'Other'}];
-    d.adminToggles = (st.adminType==='letter' ? [{k:'adminList', l:'Add to my admin list once agreed'}] : []).concat([d.common[2]]);
-    d.doneToggles = [{k:'addList', l:'Put it on my EMIS list'},{k:'complete', l:'Complete the case'},{k:'nosms', l:'No text to patient needed'}];
-    return d;
-  }
-
-  function renderOptions(){
-    const o = OUTCOMES.find(x=>x.id===st.outcome);
-    const d = defs();
-    let html = `<div class="panel-head"><h2>${esc(o.label)}</h2><span class="rtype">Contract response: <b>${esc(o.rtype)}</b></span></div>`;
-    const dayRow = st.urgency==='day' ? row('Day', chips('day', DAYS.map(x=>({v:x, l:x})))) : '';
-    if(st.outcome==='book'){
-      let whoExtra = '';
-      if(st.who==='named'){
-        whoExtra = (d.gpRoster.length ? nameChips('named', d.gpRoster, 'Choose') : '') + txt('namedCustom', d.gpRoster.length ? 'or type a name, e.g. a locum' : 'Type the name, e.g. Dr Patel or Sam (ANP)');
-      } else if(d.hasPerson){
-        whoExtra = (d.personRoster.length ? nameChips('person', d.personRoster, d.anyLabel) : '') + txt('personCustom', d.personRoster.length ? 'or type a name, e.g. a locum' : 'Optional: name a specific person, e.g. a locum');
-      }
-      html += row('Who', chips('who', d.whoOpts) + whoExtra, d.whoHint);
-      if(st.who==='me' || st.who==='named'){
-        html += row('Why them', chips('reason', d.reasonOpts) + (st.reason==='custom' ? txt('reasonCustom', 'e.g. they saw the patient last week') : ''), 'Told to the patient');
-      }
-      if(d.purposeOpts){
-        html += row('For', chips('purpose', d.purposeOpts) + (st.purpose==='other' ? txt('purposeCustom', d.purposePh) : ''), st.who==='nurse' ? '' : 'Optional');
-      }
-      if(d.showModality) html += row('Type', chips('modality', d.modalityOpts));
-      if(d.showPhotos) html += row('Photos', chips('photos', d.photoOpts), 'Requested before the call');
-      if(d.showUrgency) html += row('When', chips('urgency', d.URG)) + dayRow;
-      if(d.showFb) html += row('If unable to attend', chips('fb', d.fbOpts), d.fbHint);
-      html += row('Options', togs(d.bookToggles), d.optHint);
-    }
-    else if(st.outcome==='mine'){
-      html += row('List', chips('list', d.listOpts), d.listHint);
-      html += row('Options', togs(d.mineToggles));
-    }
-    else if(st.outcome==='contact'){
-      html += row('Ask', chips('check', d.checkOpts) + (st.check==='custom' ? txt('checkCustom', 'e.g. which side is the pain on, and any fever?') : ''));
-      html += row('If ongoing', chips('then', d.thenOpts));
-      html += row('Options', togs(d.contactToggles));
-    }
-    else if(st.outcome==='signpost'){
-      d.serviceGroups.forEach((g, i) => {
-        const last = i===d.serviceGroups.length-1;
-        html += row(g.l, chips('service', g.opts) + (last && st.service==='other' ? txt('serviceCustom', 'e.g. the community mental health team') : ''), g.hint);
-      });
-      html += row('Options', togs(d.signpostToggles));
-    }
-    else if(st.outcome==='admin'){
-      html += row('Request', chips('adminType', d.adminOpts) + (st.adminType==='other' ? txt('adminCustom', 'e.g. Please contact the patient to confirm which pharmacy they use') : ''));
-      html += row('Options', togs(d.adminToggles));
-    }
-    else if(st.outcome==='done'){
-      html += row('Options', togs(d.doneToggles));
-      html += row('Text for patient', txt('patientMsg', 'Optional: words for the team to text the patient'), 'Sent by the team');
-    }
-    html += row('Booking notes', noteChipsHtml() + txt('notes', 'Optional: anything the team needs to know when booking'), 'Optional. Goes just above the sign-off');
-    el.options.className = 'panel';
-    el.options.innerHTML = html;
-  }
-
-  /* ---------- Guided (beta): one decision at a time ---------- */
-  let mode = S.mode==='guided' ? 'guided' : 'panel';
-  let answered = new Set();
-  const labelOf = (opts, v) => (opts.find(o=>o.v===v)||{}).l || '';
-  const SHORT = {hub:'Hub', mhpCheck:'Address check', appResults:'NHS App results', smsBook:'Book & text date', fbResubmit:'New request OK', safety:'Safety-net', nosms:'No text', record:'Record on EMIS', upload:'Morning list', settled:'Complete if settled', confirm:'Confirm slot', comeback:'Come back if no help', explain:'Explain service', plink:'Text NHS link', adminList:'Admin list', addList:'EMIS list', complete:'Complete case'};
-  const CHIP = {hub:'Hub slots OK', appResults:'Results viewable in NHS App', smsBook:'Book it and text the date (no call first)', fbResubmit:'New online request welcome', safety:'Safety-net line for patient', nosms:'No text to patient', record:'Record on EMIS', upload:'Also upload to morning list', settled:'Complete the case if settled', confirm:'Confirm a slot is secured', comeback:'Come back to us if no help', explain:'Say what the service covers', plink:'Text the patient the NHS link', adminList:'Add to my admin list', addList:'Put on my EMIS list', complete:'Complete the case'};
-  const FB_SHORT = {self:'Self-book fallback', next:'Next-slot fallback', both:'Self-book or next slot', none:'No fallback'};
-  const onLabels = list => { const on = list.filter(t=>st[t.k]).map(t=>SHORT[t.k] || t.l); return on.length ? on.join(' · ') : 'None'; };
-  const TEXT_FOR = {reason:'custom', purpose:'other', check:'custom', service:'other', adminType:'other'};
-
-  function guidedSteps(){
-    const d = defs(); const s = [];
-    s.push({id:'outcome', q:'What should happen with this case?', short:'Outcome', kind:'single', key:'outcome', opts:OUTCOMES.map(o=>({v:o.id, l:o.label})), ans:OUTCOMES.find(o=>o.id===st.outcome).label});
-    if(st.outcome==='book'){
-      s.push({id:'who', q:'Who should the patient see?', short:'Who', kind:'single', key:'who', opts:d.whoOpts, ans:labelOf(d.whoOpts, st.who), sub:d.whoHint});
-      if(st.who==='named') s.push({id:'named', q:'Which doctor or ANP?', short:'Name', kind:'name', key:'named', roster:d.gpRoster, anyLabel:'', textKey:'namedCustom', ph:'Type the name, e.g. Dr Patel or Sam (ANP)', ans:namedName() || 'Not named yet'});
-      if(d.hasPerson) s.push({id:'person', q:'Anyone in particular?', short:'Name', kind:'name', key:'person', roster:d.personRoster, anyLabel:d.anyLabel, textKey:'personCustom', ph:'Optional: a specific person, e.g. a locum', ans:personName() || d.anyLabel, optional:true});
-      if(st.who==='me' || st.who==='named') s.push({id:'reason', q:'Why them? The team tells the patient this.', short:'Why them', kind:'single', key:'reason', opts:d.reasonOpts, textKey:'reasonCustom', ph:'e.g. they saw the patient last week', ans:st.reason==='custom' ? (st.reasonCustom.trim() || 'Other') : labelOf(d.reasonOpts, st.reason)});
-      if(d.purposeOpts) s.push({id:'purpose', q:'What is the appointment for?', short:'For', kind:'single', key:'purpose', opts:d.purposeOpts, textKey:'purposeCustom', ph:d.purposePh, ans:st.purpose==='other' ? (st.purposeCustom.trim() || 'Other') : labelOf(d.purposeOpts, st.purpose), optional:true});
-      if(d.showModality) s.push({id:'modality', q:'Face-to-face or telephone?', short:'Type', kind:'single', key:'modality', opts:d.modalityOpts, ans:labelOf(d.modalityOpts, st.modality)});
-      if(d.showPhotos) s.push({id:'photos', q:'Do you need photos from the patient?', short:'Photos', kind:'single', key:'photos', opts:d.photoOpts, sub:'The team will ask for them before the call', ans:st.photos==='yes' ? 'Yes' : 'No'});
-      if(d.showUrgency) s.push({id:'urgency', q:'How soon?', short:'When', kind:'single', key:'urgency', opts:d.URG, ans:labelOf(d.URG, st.urgency)});
-      if(d.showUrgency && st.urgency==='day') s.push({id:'day', q:'Which day?', short:'Day', kind:'single', key:'day', opts:DAYS.map(x=>({v:x, l:x})), ans:dayOk(st.day)});
-      s.push(finalStep(d.bookToggles, d.showFb ? d.fbOpts : null, d.optHint));
-    }
-    else if(st.outcome==='mine'){
-      s.push({id:'list', q:'Which of your lists?', short:'List', kind:'single', key:'list', opts:d.listOpts, sub:d.listHint, ans:labelOf(d.listOpts, st.list)});
-      s.push(finalStep(d.mineToggles));
-    }
-    else if(st.outcome==='contact'){
-      s.push({id:'check', q:'What should the team ask the patient?', short:'Ask', kind:'single', key:'check', opts:d.checkOpts, textKey:'checkCustom', ph:'e.g. which side is the pain on, and any fever?', ans:st.check==='custom' ? (st.checkCustom.trim() || 'A specific question') : labelOf(d.checkOpts, st.check)});
-      s.push({id:'then', q:'If the problem is ongoing, what then?', short:'If ongoing', kind:'single', key:'then', opts:d.thenOpts, ans:labelOf(d.thenOpts, st.then)});
-      s.push(finalStep(d.contactToggles));
-    }
-    else if(st.outcome==='signpost'){
-      const all = d.serviceGroups.flatMap(g=>g.opts);
-      s.push({id:'service', q:'Which service?', short:'Service', kind:'groups', key:'service', groups:d.serviceGroups, textKey:'serviceCustom', ph:'e.g. the community mental health team', ans:st.service==='other' ? (st.serviceCustom.trim() || 'Other service') : labelOf(all, st.service)});
-      s.push(finalStep(d.signpostToggles));
-    }
-    else if(st.outcome==='admin'){
-      s.push({id:'adminType', q:'What kind of request?', short:'Request', kind:'single', key:'adminType', opts:d.adminOpts, textKey:'adminCustom', ph:'e.g. Please contact the patient to confirm which pharmacy they use', ans:st.adminType==='other' ? (st.adminCustom.trim() || 'Other') : labelOf(d.adminOpts, st.adminType)});
-      s.push(finalStep(d.adminToggles));
-    }
-    else if(st.outcome==='done'){
-      s.push({id:'patientMsg', q:'Anything to text the patient?', short:'Text', kind:'text', key:'patientMsg', ph:'Optional: words for the team to text the patient', ans:st.patientMsg.trim() || 'Nothing', optional:true});
-      s.push(finalStep(d.doneToggles));
-    }
-    return s;
-  }
-  function finalStep(togs, fbOpts, hint){
-    const parts = [];
-    if(fbOpts) parts.push(FB_SHORT[effFb()]);
-    parts.push(onLabels(togs));
-    return {id:'opts', q:'Anything else for the team?', short:'Options', kind:'final', togs, fbOpts:fbOpts||null, sub:'Defaults are already applied. Tap anything to change it.', hint, ans:parts.filter(x=>x && x!=='None').join(' · ') || 'Defaults'};
-  }
-
-  let navDir = 'fwd', lastStage = null, stageAt = 0;
-  const GUARD_MS = 400; /* ignore taps this soon after a screen change, so a double-tap cannot answer the next question */
-  const KEYS = ['1','2','3','4','5','6','7','8','9','0'];
-  const gopts = (key, opts, stepId) => `<div class="gopts${opts.length>6 ? ' cols' : ''}">${opts.map((o,i)=>`<button type="button" class="gopt${st[key]===o.v?' on':''}${o.tone?' t-'+o.tone:''}" data-k="${key}" data-v="${esc(o.v)}" data-step="${stepId}" aria-pressed="${st[key]===o.v}"><span class="gkey">${KEYS[i]||''}</span><span class="gl">${esc(o.l)}</span>${o.tone?'<i class="dot"></i>':''}</button>`).join('')}</div>`;
-
-  function stageBody(s){
-    let body = '', needNext = false;
-    if(s.kind==='single'){
-      body = gopts(s.key, s.opts, s.id);
-      if(s.textKey && st[s.key]===TEXT_FOR[s.key]){ body += txt(s.textKey, s.ph); needNext = true; }
-    } else if(s.kind==='name'){
-      const list = (s.anyLabel ? [{v:'', l:s.anyLabel}] : []).concat(s.roster.map(n=>({v:n, l:n})));
-      body = (list.length ? gopts(s.key, list, s.id) : '') + txt(s.textKey, s.ph); needNext = true;
-    } else if(s.kind==='multi'){
-      body = togs(s.togs); needNext = true;
-    } else if(s.kind==='final'){
-      const tchips = list => `<div class="chips">${list.map(t=>`<button type="button" role="switch" aria-checked="${!!st[t.k]}" class="chip tchip${st[t.k]?' on':''}" data-t="${t.k}"><span class="tick"></span>${esc(CHIP[t.k] || t.l)}</button>`).join('')}</div>`;
-      if(s.fbOpts){
-        const cur = effFb();
-        body += `<div class="ggrp">If they can't attend the slot</div><div class="chips">${s.fbOpts.map(o=>`<button type="button" class="chip${cur===o.v?' on':''}" data-k="fb" data-v="${o.v}" aria-pressed="${cur===o.v}">${esc(o.l)}</button>`).join('')}</div>`;
-      }
-      body += `<div class="ggrp">Include</div>` + tchips(s.togs);
-      if(s.hint) body += `<p class="gsub" style="margin:6px 0 0">${esc(s.hint)}</p>`;
-      body += `<div class="ggrp">Booking notes</div>` + noteChipsHtml() + txt('notes', 'Optional: anything the team needs to know when booking');
-      return body + `<div class="gact"><button type="button" class="btn-sm" data-done="${s.id}">Show message &rarr;</button></div>`;
-    } else if(s.kind==='groups'){
-      body = s.groups.map(g => `<div class="ggrp">${esc(g.l)}</div>` + gopts(s.key, g.opts, s.id)).join('');
-      if(st[s.key]===TEXT_FOR[s.key]){ body += txt(s.textKey, s.ph); needNext = true; }
-    } else if(s.kind==='text'){
-      body = txt(s.key, s.ph); needNext = true;
-    } else if(s.kind==='notes'){
-      body = noteChipsHtml() + txt('notes', 'Optional: anything the team needs to know when booking'); needNext = true;
-    }
-    const nextLabel = s.kind==='multi' ? 'Done' : 'Next';
-    const act = needNext ? `<div class="gact"><button type="button" class="btn-sm" data-done="${s.id}">${nextLabel}</button>${s.optional ? `<button type="button" class="btn-link" data-done="${s.id}">Skip</button>` : ''}</div>` : '';
-    return body + act;
-  }
-
-  function renderGuided(){
-    const steps = guidedSteps();
-    const idx = steps.findIndex(x => !answered.has(x.id));
-    const cur = idx>=0 ? steps[idx] : null;
-    const total = steps.length;
-    const stageId = cur ? cur.id : '__final';
-    const anim = stageId===lastStage ? '' : ` in-${navDir}`;
-    if(stageId!==lastStage) stageAt = performance.now();
-    lastStage = stageId;
-    const back = (cur && idx===0) ? '' : `<button type="button" class="btn-link" data-back>Back</button>`;
-    let html;
-    if(cur){
-      const pct = Math.max(4, Math.round(idx / total * 100));
-      html = `<div class="stage${anim}" data-step="${cur.id}"><div class="gprog"><i style="width:${pct}%"></i></div><div class="gmeta"><span>Question ${idx+1} of ${total}</span>${back}</div><h3 class="gq">${esc(cur.q)}</h3>${cur.sub ? `<p class="gsub">${esc(cur.sub)}</p>` : ''}${stageBody(cur)}</div>`;
-    } else {
-      const pills = steps.map(s => `<button type="button" class="gpill" data-reopen="${s.id}" title="Change">${esc(s.short)}: <b>${esc(s.ans)}</b></button>`).join('') + (st.notes.trim() ? `<button type="button" class="gpill" data-reopen="opts" title="Change">Notes: <b>${esc(st.notes.trim())}</b></button>` : '');
-      html = `<div class="stage${anim}"><div class="gprog"><i style="width:100%"></i></div><div class="gcopied" id="gcopied" hidden><span>Copied. Paste it into Klinik, then:</span><button type="button" class="btn-sm" data-next>Next case &rarr;</button></div><div class="gmeta"><span>Your message</span>${back}</div><h3 class="gq">Copy this into Klinik</h3><div class="gmsg"><textarea id="gmsg" spellcheck="false" aria-label="Generated message"></textarea><div class="gcount" id="gcount"></div></div><div class="gact"><button type="button" class="btn-sm" data-copy>Copy message</button></div><div class="gsummary">${pills}</div><div class="gfoot"><button type="button" class="btn-link" data-next>Start over without copying</button></div></div>`;
-    }
-    el.options.className = 'panel guided';
-    el.options.innerHTML = html;
-    if(cur){
-      if(cur.kind==='text' || cur.kind==='notes' || cur.kind==='name'){ const inp = el.options.querySelector('input.txt'); if(inp) inp.focus({preventScroll:true}); }
-    } else {
-      const g = $('#gmsg'); g.value = el.msg.value;
-      paintCount(null);
-    }
-    if(window.scrollY > 120) window.scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
-  }
-  function goBack(){
-    const steps = guidedSteps();
-    let idx = steps.findIndex(x => !answered.has(x.id)); if(idx<0) idx = steps.length;
-    for(let i=idx-1; i>=0; i--){ if(answered.has(steps[i].id)){ answered.delete(steps[i].id); break; } }
-    navDir = 'back'; renderPanel();
-  }
-  function renderPanel(){ if(mode==='guided') renderGuided(); else renderOptions(); }
-  function applyMode(){
-    document.querySelectorAll('#modeSeg [data-mode]').forEach(b => { const on = b.dataset.mode===mode; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
-    document.body.classList.toggle('guided-mode', mode==='guided');
-    $('#outcomeBlock').hidden = mode==='guided';
-  }
-
-  let pulseTimer = null;
-  function update(){
-    const r = compose();
-    const changed = el.msg.value !== r.text;
-    el.msg.value = r.text;
-    const g = $('#gmsg'); if(g) g.value = r.text;
-    edited = false; el.regen.hidden = true;
-    paintCount(r);
-    if(changed && mode==='guided'){
-      const card = el.msg.closest('.card');
-      card.classList.add('pulse'); clearTimeout(pulseTimer);
-      pulseTimer = setTimeout(() => card.classList.remove('pulse'), 450);
-    }
-  }
-  function paintCount(r){
-    const n = el.msg.value.length, limit = r ? r.limit : (+S.limit || 500);
-    const over = n > limit, warn = !over && n > limit * 0.85;
-    const label = `${n} / ${limit}`;
-    [el.count, el.count2].forEach(c => { c.textContent = label; c.classList.toggle('over', over); c.classList.toggle('warn', warn); });
-    el.meter.style.width = Math.min(100, n / limit * 100) + '%';
-    el.meter.classList.toggle('over', over); el.meter.classList.toggle('warn', warn);
-    el.note.classList.toggle('over', over);
-    if(over) el.note.textContent = `Over the Klinik limit by ${n - limit} characters. Switch off an option or trim the text.`;
-    else if(r && r.compacted) el.note.textContent = 'Shortened automatically to fit the Klinik limit.';
-    else el.note.textContent = '';
-    const gc = $('#gcount');
-    if(gc){ gc.textContent = label + (over ? ` - over the Klinik limit by ${n - limit}, trim the text` : (r && r.compacted) ? ' - shortened to fit' : ''); gc.classList.toggle('over', over); }
-  }
-  function renderAll(){ renderOutcomes(); applyMode(); renderPanel(); update(); }
-
-  /* ---------- events ---------- */
-  $('#modeSeg').addEventListener('click', e => {
-    const b = e.target.closest('[data-mode]'); if(!b) return;
-    mode = b.dataset.mode; S.mode = mode; saveS();
-    if(mode==='guided'){ st = fresh('book'); answered = new Set(); navDir = 'fwd'; lastStage = null; el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); }
-    renderAll();
-  });
-  el.presets.addEventListener('click', e => {
-    const b = e.target.closest('[data-p]'); if(!b) return;
-    const p = PRESETS[+b.dataset.p];
-    st = Object.assign(fresh(p.o), p.s);
-    if(p.o==='book' && p.s.urgency==='day') st.day = dayOk(S.myDay);
-    answered = new Set(guidedSteps().map(x => x.id));
-    renderAll();
-    el.presets.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c===b));
-  });
-  el.outcomes.addEventListener('click', e => {
-    const b = e.target.closest('[data-o]'); if(!b) return;
-    st = fresh(b.dataset.o);
-    answered = new Set(['outcome']);
-    el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-    renderAll();
-  });
-  el.options.addEventListener('click', e => {
-    if(mode==='guided' && e.isTrusted && performance.now() - stageAt < GUARD_MS && !e.target.closest('[data-back]')) return;
-    const done = e.target.closest('[data-done]');
-    if(done){ answered.add(done.dataset.done); navDir = 'fwd'; renderPanel(); update(); return; }
-    const reopen = e.target.closest('[data-reopen]');
-    if(reopen){ answered.delete(reopen.dataset.reopen); navDir = 'back'; renderPanel(); return; }
-    if(e.target.closest('[data-back]')){ goBack(); return; }
-    if(e.target.closest('[data-copy]')){ copy(); return; }
-    if(e.target.closest('[data-next]') || e.target.closest('[data-restart]')){ st = fresh('book'); answered = new Set(); navDir = 'fwd'; el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on')); renderAll(); return; }
-    const note = e.target.closest('[data-note]');
-    if(note){ st.notes = st.notes.trim()===note.dataset.note ? '' : note.dataset.note; renderPanel(); update(); return; }
-    const chip = e.target.closest('[data-k]');
-    if(chip){
-      const k = chip.dataset.k, v = chip.dataset.v;
-      if(k==='outcome'){
-        st = fresh(v); answered = new Set(['outcome']);
-        el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-        renderAll(); return;
-      }
-      st[k] = v;
-      if(k==='who'){ st.person=''; st.personCustom=''; st.named=''; st.namedCustom=''; st.reason='none'; st.purpose='none';
-        if(v==='phleb'){ st.hub=true; st.safety=false; }
-        if(v==='pa'){ st.modality='any'; st.urgency='routine'; }
-        else if(v==='mhp'){ st.modality='tel'; st.urgency='routine'; st.smsBook=true; st.nosms=false; st.mhpCheck=true; }
-        else if(st.modality==='any'){ st.modality='f2f'; }
-        if(v==='pharm' && st.modality==='f2f' && st.urgency==='soonest'){ st.modality='tel'; st.urgency='routine'; }
-        if(v==='fcp'){ st.modality='either'; st.urgency='routine'; }
-        if(v==='nurse'){ st.modality='f2f'; st.urgency='routine'; st.safety=false; }
-        if(v==='me' && st.urgency==='soonest'){ st.urgency='day'; st.day=dayOk(S.myDay); }
-      }
-      if(k==='named') st.namedCustom='';
-      if(k==='person') st.personCustom='';
-      if(k==='modality' && v==='tel' && st.who==='anygp') st.who='anydr';
-      if(k==='service'){ const svc = SERVICE(v); st.safety = !!S.safetyDefault && (svc ? svc.safety : v!=='nhsapp'); st.comeback = svc ? svc.comeback : true; }
-      if(mode==='guided' && chip.dataset.step && TEXT_FOR[k]!==v){ answered.add(chip.dataset.step); navDir = 'fwd'; }
-      el.presets.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-      renderPanel(); update();
-      return;
-    }
-    const tog = e.target.closest('[data-t]');
-    if(tog){
-      const k = tog.dataset.t; st[k] = !st[k];
-      if(k==='smsBook' && st.smsBook) st.nosms = false;
-      if(k==='nosms' && st.nosms) st.smsBook = false;
-      renderPanel(); update();
-    }
-  });
-  el.options.addEventListener('keydown', e => {
-    if(e.key!=='Enter' || mode!=='guided') return;
-    const inp = e.target.closest('[data-x]'); if(!inp) return;
-    const stepEl = inp.closest('[data-step]'); if(!stepEl) return;
-    e.preventDefault(); answered.add(stepEl.dataset.step); navDir = 'fwd'; renderPanel(); update();
-  });
-  el.options.addEventListener('input', e => {
-    const g = e.target.closest('#gmsg'); if(!g) return;
-    el.msg.value = g.value; edited = true; el.regen.hidden = false; paintCount(null);
-  });
-  document.addEventListener('keydown', e => {
-    if(mode!=='guided' || e.ctrlKey || e.metaKey || e.altKey) return;
-    const t = e.target; if(t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA')) return;
-    const i = KEYS.indexOf(e.key); if(i<0) return;
-    const opts = el.options.querySelectorAll('.stage .gopt');
-    if(opts[i]){ e.preventDefault(); opts[i].click(); }
-  });
-  el.options.addEventListener('input', e => {
-    const i = e.target.closest('[data-x]'); if(!i) return;
-    st[i.dataset.x] = i.value;
-    const pair = {namedCustom:'named', personCustom:'person'}[i.dataset.x];
-    if(pair && i.value){ st[pair]=''; el.options.querySelectorAll(`[data-k="${pair}"]`).forEach(c => { c.classList.toggle('on', c.dataset.v===''); c.setAttribute('aria-pressed', c.dataset.v===''); }); }
-    if(i.dataset.x==='notes'){ el.options.querySelectorAll('[data-note]').forEach(c => { const on = c.dataset.note===i.value.trim(); c.classList.toggle('on', on); c.setAttribute('aria-pressed', on); }); }
-    update();
-  });
-  el.msg.addEventListener('input', () => { edited = true; el.regen.hidden = false; paintCount(null); });
-  el.regen.addEventListener('click', update);
-
-  async function copy(){
-    const t = el.msg.value;
-    let ok = false;
-    try { await navigator.clipboard.writeText(t); ok = true; } catch(e){}
-    if(!ok){ try { el.msg.focus(); el.msg.select(); ok = document.execCommand('copy'); el.msg.setSelectionRange(0,0); } catch(e){} }
-    [el.copy, el.copy2, ...document.querySelectorAll('[data-copy]')].forEach(b => { b.textContent = ok ? 'Copied' : 'Select and copy manually'; b.classList.toggle('done', ok); setTimeout(()=>{ b.textContent='Copy message'; b.classList.remove('done'); }, 1600); });
-    const banner = $('#gcopied'); if(banner && ok){ banner.hidden = false; stageAt = performance.now(); }
-  }
-  el.copy.addEventListener('click', copy);
-  el.copy2.addEventListener('click', copy);
-  document.addEventListener('keydown', e => { if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ e.preventDefault(); copy(); } });
-
-  /* signer */
-  el.name.value = S.name || '';
-  const paintSigner = () => el.signer.classList.toggle('needs', !(S.name||'').trim());
-  el.name.addEventListener('input', () => { S.name = el.name.value; saveS(); paintSigner(); update(); });
-  paintSigner();
-
-  /* settings */
-  document.querySelectorAll('[data-s]').forEach(i => {
-    i.value = S[i.dataset.s] ?? '';
-    i.addEventListener('input', () => {
-      const k = i.dataset.s;
-      S[k] = i.type==='number' ? (+i.value || DEFAULT_S.limit) : i.value;
-      saveS();
-      if(k==='myDay' && st.urgency==='day') st.day = dayOk(S.myDay);
-      renderPanel(); update();
-    });
-  });
-  const stogs = $('#s-togs');
-  function renderSTogs(){
-    const list = [{k:'safetyDefault', l:'Safety-net line on by default'},{k:'breaks', l:'Line breaks around the greeting and sign-off'}];
-    stogs.innerHTML = list.map(t=>`<button type="button" role="switch" aria-checked="${!!S[t.k]}" class="tog${S[t.k]?' on':''}" data-st="${t.k}"><span class="sw"></span><span>${esc(t.l)}</span></button>`).join('');
-  }
-  stogs.addEventListener('click', e => {
-    const b = e.target.closest('[data-st]'); if(!b) return;
-    S[b.dataset.st] = !S[b.dataset.st]; saveS(); renderSTogs(); update();
-  });
-  renderSTogs();
-
-  /* first paint: the most common message, ready to copy */
-  renderPresets();
-  if(mode==='guided'){ st = fresh('book'); answered = new Set(); renderAll(); }
-  else { st = Object.assign(fresh('book'), PRESETS[0].s); renderAll(); el.presets.querySelector('.chip').classList.add('on'); }
-})();
-</script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
