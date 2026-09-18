@@ -121,27 +121,30 @@ export const MOD_VERB = {
 };
 
 export const DEFAULT_SETTINGS = {
-  name: '', limit: 500, safetyDefault: true, breaks: true, mode: 'panel',
+  name: '', limit: 500, safetyDefault: true, breaks: true,
   today: { on: false, reason: 'sick', custom: '', date: '' },
+  moreStarts: false,                    /* whether the full Start row is expanded */
+  recent: [],                           /* last few customised cases copied on this device: [{ l, o, s }] */
   gps: '', pas: '', pharms: '', physios: '', nurses: '', mhps: '', mhpDay: 'Tuesday', mhpArea: 'Tower Hamlets',
   slot: 'Tel Triage KLINIK DR TO BOOK ONLY', myDay: 'Thursday',
   noteShortcuts: 'Take history and feedback to duty doctor | No need to call the patient - can send SMS after finding out the information'
 };
 
+/* primary: shown in the Start row before "More"; the rest appear when it is expanded. Order within a group is the display order. */
 export const PRESETS = [
-  { l: 'F2F ASAP · any GP/ANP', o: 'book', s: { who: 'anygp', modality: 'f2f', urgency: 'soonest' } },
+  { l: 'F2F ASAP · any GP/ANP', o: 'book', primary: true, s: { who: 'anygp', modality: 'f2f', urgency: 'soonest' } },
   { l: 'F2F ASAP · hub too', o: 'book', s: { who: 'anygp', modality: 'f2f', urgency: 'soonest', hub: true } },
-  { l: 'Same day · urgent', o: 'book', s: { who: 'anygp', modality: 'f2f', urgency: 'today' } },
-  { l: 'Tel · any doctor · next available', o: 'book', s: { who: 'anydr', modality: 'tel', urgency: 'routine' } },
+  { l: 'Same day · urgent', primary: true, o: 'book', s: { who: 'anygp', modality: 'f2f', urgency: 'today' } },
+  { l: 'Tel · any doctor · next available', primary: true, o: 'book', s: { who: 'anydr', modality: 'tel', urgency: 'routine' } },
   { l: 'Results · tel any doctor', o: 'book', s: { who: 'anydr', modality: 'tel', urgency: 'routine', purpose: 'results', safety: false } },
   { l: 'Pharmacist · tel', o: 'book', s: { who: 'pharm', modality: 'tel', urgency: 'routine' } },
   { l: 'Physio (FCP) · first available', o: 'book', s: { who: 'fcp', modality: 'either', urgency: 'routine' } },
   { l: 'PA · next available', o: 'book', s: { who: 'pa', modality: 'any', urgency: 'routine' } },
   { l: 'Mental health practitioner · tel', o: 'book', s: { who: 'mhp', modality: 'tel', urgency: 'routine' } },
-  { l: 'See me · clinic day · skin', o: 'book', s: { who: 'me', modality: 'f2f', urgency: 'day', reason: 'skin' } },
-  { l: 'My triage slots (PM)', o: 'mine', s: { list: 'PM' } },
-  { l: 'Contact & re-check', o: 'contact', s: {} },
-  { l: 'Pharmacy First', o: 'signpost', s: { service: 'pharmacyfirst' } },
+  { l: 'See me · clinic day · skin', primary: true, o: 'book', s: { who: 'me', modality: 'f2f', urgency: 'day', reason: 'skin' } },
+  { l: 'My triage slots (PM)', primary: true, o: 'mine', s: { list: 'PM' } },
+  { l: 'Contact & re-check', primary: true, o: 'contact', s: {} },
+  { l: 'Pharmacy First', primary: true, o: 'signpost', s: { service: 'pharmacyfirst' } },
   { l: 'Contraception · pharmacy', o: 'signpost', s: { service: 'pcs', safety: false } },
   { l: 'Talking Therapies', o: 'signpost', s: { service: 'talking' } },
   { l: '111 option 2 · mental health', o: 'signpost', s: { service: 'mh111', safety: false, comeback: false } },
@@ -151,7 +154,7 @@ export const PRESETS = [
   { l: 'Smear · nurse', o: 'book', s: { who: 'nurse', modality: 'f2f', urgency: 'routine', purpose: 'smear', safety: false } },
   { l: 'Travel clinic', o: 'book', s: { who: 'nurse', modality: 'f2f', urgency: 'routine', purpose: 'travel', safety: false } },
   { l: 'Private letter', o: 'admin', s: { adminType: 'letter' } },
-  { l: 'Dealt with · complete', o: 'done', s: {} }
+  { l: 'Dealt with · complete', primary: true, o: 'done', s: {} }
 ];
 
 /* National (England-wide) services a practice can signpost to. group: pharm | self | urgent | screen | life | local */

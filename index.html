@@ -13,40 +13,43 @@
   <link rel="stylesheet" href="./app.css">
 </head>
 <body>
+  <a class="c-skip" href="#preview-card">Skip to the message</a>
   <div class="l-page">
     <header class="l-header">
-      <div class="l-header__intro">
-        <h1>Klinik Triage Composer</h1>
-        <p class="c-lede">Pick an outcome, adjust anything that differs, copy. Every message states what, who and by when, and never sends the patient away to "call back tomorrow".</p>
-      </div>
-      <div class="l-header__tools">
-        <div id="mode-switch"></div>
+      <div class="l-header__row">
+        <div class="l-header__intro">
+          <h1>Klinik Triage Composer</h1>
+          <p class="c-lede">Pick a start, change anything that differs, copy.</p>
+        </div>
         <div class="c-signer" id="signer">
           <label class="c-signer__label" for="signer-name">Signed as</label>
           <input class="c-signer__input" id="signer-name" type="text" placeholder="Your name" autocomplete="off">
         </div>
       </div>
+      <div class="l-today" id="today"></div>
     </header>
 
-    <div class="l-today" id="today"></div>
-
     <main class="l-work">
-      <section class="l-stack" aria-label="Build the message">
-        <div class="l-quick">
-          <h2 class="c-eyebrow">Quick starts</h2>
-          <div id="presets" class="c-chips"></div>
+      <section class="l-build" aria-labelledby="h-start">
+        <div class="c-block">
+          <h2 class="c-eyebrow" id="h-start">Start from</h2>
+          <div id="presets"></div>
+          <div id="recent"></div>
         </div>
-        <div class="l-outcome">
-          <h2 class="c-eyebrow">Outcome</h2>
-          <div id="outcomes"></div>
-        </div>
-        <div id="options"></div>
+        <section class="c-block" aria-labelledby="h-case">
+          <div class="c-block__head">
+            <h2 class="c-eyebrow" id="h-case">This case</h2>
+            <p class="c-hint" id="case-hint">Each part is a button. Open one to change it.</p>
+          </div>
+          <div id="chunks" class="c-chunks" aria-describedby="case-hint"></div>
+          <div id="editor"></div>
+        </section>
       </section>
 
-      <aside class="l-preview" aria-label="Message preview">
-        <div class="c-card" id="preview-card">
+      <aside class="l-preview" aria-labelledby="h-msg">
+        <div class="c-card" id="preview-card" tabindex="-1">
           <div class="c-card__head">
-            <h2 class="c-eyebrow">Message to team</h2>
+            <h2 class="c-eyebrow" id="h-msg">Message to team</h2>
             <output class="c-count" id="count" for="message">0 / 500</output>
           </div>
           <progress class="c-meter" id="meter" max="500" value="0" aria-label="Characters used"></progress>
@@ -54,12 +57,17 @@
           <p class="c-card__note" id="note" aria-live="polite"></p>
           <div class="c-card__body">
             <button class="c-btn c-btn--primary c-btn--block" id="copy" type="button">Copy message</button>
-            <button class="c-btn c-btn--ghost" id="regen" type="button" hidden>Regenerate</button>
+            <div class="c-card__row">
+              <button class="c-btn c-btn--ghost" id="next" type="button">Next case</button>
+              <button class="c-btn c-btn--ghost" id="regen" type="button" hidden>Regenerate</button>
+            </div>
           </div>
           <p class="c-card__hint">Edit the text freely before copying. <kbd>Ctrl</kbd>/<kbd>&#8984;</kbd> + <kbd>Enter</kbd> copies.</p>
         </div>
       </aside>
     </main>
+
+    <p class="u-visually-hidden" id="status" role="status"></p>
 
     <footer class="l-foot">
       <details class="c-details" id="why"><summary class="c-details__summary">Why the wording is like this</summary>
