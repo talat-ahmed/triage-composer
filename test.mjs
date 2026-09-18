@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { PRESETS, DEFAULT_SETTINGS, WHO, MODALITY, URGENCY, SERVICES, SERVICE } from './data.js';
 import { compose, defaultState, applyChange, appAvail, effFb, photosAvail, showCapacity, restOfWeek, todayKey } from './compose.js';
+import { caseChunks, caseLabel, presetGroups, guidedSteps, QUESTIONS, FINAL_IDS } from './summary.js';
 
 const S = { ...DEFAULT_SETTINGS, name: 'Test' };
 const make = (o, extra = {}, settings = S) => Object.assign(defaultState(o, settings), extra);
@@ -142,6 +143,55 @@ test('every who/modality/urgency combination produces a sentence', () => {
     const r = compose(st, S);
     assert.ok(r.text.length > 40, `${w.v}/${m.v}/${u.v} produced no body`);
   }
+});
+
+test('every preset and every who/modality/urgency combination summarises into chunks that cover the whole message', () => {
+  const cases = PRESETS.map(p => make(p.o, p.s));
+  for (const w of WHO) for (const m of MODALITY) for (const u of URGENCY) cases.push(make('book', { who: w.v, modality: m.v, urgency: u.v }));
+  for (const st of cases) {
+    const c = caseChunks(st, S);
+    assert.ok(c.length >= 3, 'too few chunks');
+    assert.equal(c[0].id, 'outcome'); assert.equal(c[c.length - 1].id, 'notes');
+    for (const x of c) {
+      assert.ok(x.label && typeof x.value === 'string' && x.value.length, `${x.id}: missing label or value`);
+      assert.ok(['single', 'name', 'groups', 'text', 'switches', 'notes'].includes(x.kind), `${x.id}: unknown kind ${x.kind}`);
+      if (x.kind === 'single') assert.ok(x.opts.some(o => o.l === x.value) || x.textKey || x.id === 'fb' || x.id === 'photos', `${x.id}: value "${x.value}" is not one of its options`);
+    }
+    assert.equal(new Set(c.map(x => x.id)).size, c.length, 'duplicate chunk ids');
+  }
+});
+
+test('the case line only shows what differs from nothing: optional defaults are muted, and the label reads as a sentence', () => {
+  const st = make('book', PRESETS[0].s);
+  const c = caseChunks(st, S);
+  assert.equal(c.find(x => x.id === 'purpose').muted, true);
+  assert.equal(c.find(x => x.id === 'notes').muted, true);
+  assert.equal(c.find(x => x.id === 'urgency').muted, undefined);
+  assert.equal(caseLabel(st, S), 'Book appointment · Any doctor/ANP · Face-to-face · Next soonest slot · Safety-net');
+  const day = make('book', { urgency: 'day', day: 'Tuesday' });
+  assert.deepEqual(caseChunks(day, S).map(x => x.id).filter(x => ['day', 'dayFb'].includes(x)), ['day', 'dayFb']);
+});
+
+test('the Start row shows the primary starts first, grouped Book / Signpost / Other, and can show them all', () => {
+  const primary = presetGroups(p => p.primary), all = presetGroups();
+  assert.deepEqual(primary.map(g => g.l), ['Book', 'Signpost', 'Other']);
+  assert.equal(primary.flatMap(g => g.items).length, PRESETS.filter(p => p.primary).length);
+  assert.equal(all.flatMap(g => g.items).length, PRESETS.length);
+  assert.equal(primary[0].items[0].v, '0', 'the everyday case is the first start');
+});
+
+test('guided asks every non-final chunk as a question, in order, then one final screen', () => {
+  const cases = PRESETS.map(p => make(p.o, p.s));
+  for (const w of WHO) for (const m of MODALITY) for (const u of URGENCY) cases.push(make('book', { who: w.v, modality: m.v, urgency: u.v }));
+  for (const st of cases) {
+    const steps = guidedSteps(st, S), chunks = caseChunks(st, S);
+    assert.deepEqual(steps.slice(0, -1).map(x => x.id), chunks.filter(c => !FINAL_IDS.includes(c.id)).map(c => c.id));
+    for (const x of steps.slice(0, -1)) assert.ok(QUESTIONS[x.id], `${x.id} has no question wording`);
+    const last = steps[steps.length - 1];
+    assert.equal(last.kind, 'final'); assert.ok(last.chunks.some(c => c.id === 'opts') && last.chunks.some(c => c.id === 'notes'));
+    assert.ok(steps.length >= 3 && steps.length <= 12, `${steps.length} screens`);
+  }
+  assert.equal(guidedSteps(make('book', PRESETS[0].s), S).length, 6, 'the everyday booking is six screens');
 });
 
 console.log(`${n} checks passed`);

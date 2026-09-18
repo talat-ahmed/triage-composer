@@ -17,10 +17,11 @@
   --color-on-accent: #FFFFFF;
   --color-accent-soft: #D9EEF0;
   --color-accent-line: #8FC7CD;
-  --color-crit: #B7372A; --color-crit-soft: #F6E0DC;
-  --color-warn: #A86A08; --color-warn-soft: #F7E9CF;
-  --color-ok: #2F7A57;   --color-ok-soft: #DCEFE4;
+  --color-crit: #A93123; --color-crit-soft: #F6E0DC;   /* 5.3:1 on its soft background */
+  --color-warn: #875305; --color-warn-soft: #F7E9CF;   /* 5.4:1 on its soft background, 6.4:1 on white */
+  --color-ok: #286C4D;   --color-ok-soft: #DCEFE4;     /* 5.2:1 on its soft background */
   --color-on-ok: #FFFFFF;
+  --color-focus: #0B6E78;
   --shadow-1: 0 1px 2px rgba(21, 38, 43, .06), 0 8px 24px rgba(21, 38, 43, .08);
   --shadow-bar: 0 -6px 20px rgba(0, 0, 0, .08);
 
@@ -28,13 +29,13 @@
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-base: 13px;
-  --text-md: 14px;
-  --text-lg: 15px;
-  --text-xl: 17px;
-  --text-2xl: 18px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 19px;
   --text-3xl: 24px;
   --text-display: 30px;
   --leading: 1.5;
@@ -64,7 +65,9 @@
   --measure: 72ch;
   --page-max: 1180px;
   --stage-max: 720px;
-  --control-h: 40px;
+  --control-h: 36px;      /* every control at least this tall */
+  --target-min: 28px;     /* smaller secondary targets, still above the 24px minimum */
+  --focus-w: 2px;
   --switch-w: 28px;
   --switch-h: 16px;
   --tick: 16px;
@@ -96,6 +99,7 @@
     --color-warn: #E0A64A; --color-warn-soft: #3A2C13;
     --color-ok: #6CC29A;   --color-ok-soft: #173327;
     --color-on-ok: #062A2E;
+    --color-focus: #46B9C2;
     --shadow-1: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
   }
 }
@@ -116,6 +120,7 @@
   --color-warn: #E0A64A; --color-warn-soft: #3A2C13;
   --color-ok: #6CC29A;   --color-ok-soft: #173327;
   --color-on-ok: #062A2E;
+  --color-focus: #46B9C2;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
 }
 

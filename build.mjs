@@ -11,7 +11,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const read = f => readFileSync(join(root, f), 'utf8');
 
 /* Modules are concatenated in dependency order; imports/exports are stripped. Names must not collide across files. */
-const MODULES = ['data.js', 'compose.js', 'components.js', 'app.js'];
+const MODULES = ['data.js', 'compose.js', 'summary.js', 'components.js', 'app.js'];
 const stripModuleSyntax = src => src
   .replace(/^import\s[\s\S]*?from\s+'[^']+';\s*$/gm, '')
   .replace(/^export\s+(?=(const|let|function|class)\b)/gm, '');
