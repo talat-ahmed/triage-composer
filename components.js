@@ -23,8 +23,9 @@ export function h(tag, props = {}, ...children) {
 export const replaceChildren = (el, ...nodes) => { el.replaceChildren(...nodes.flat(Infinity).filter(Boolean)); return el; };
 const cx = (...a) => a.filter(Boolean).join(' ');
 
-/* Roving tabindex for a radiogroup: one tab stop, arrow keys move and select (WAI-ARIA radio group pattern). */
-function rovingRadios(group) {
+/* Roving tabindex for a radiogroup: one tab stop, arrow keys move (and select unless selectOnMove is false;
+   a group whose selection advances the screen moves focus only and lets Enter or Space pick). */
+function rovingRadios(group, selectOnMove = true) {
   group.addEventListener('keydown', e => {
     const items = [...group.querySelectorAll('[role="radio"]')];
     const i = items.indexOf(document.activeElement); if (i < 0) return;
@@ -34,7 +35,7 @@ function rovingRadios(group) {
     else if (e.key === 'Home') j = 0;
     else if (e.key === 'End') j = items.length - 1;
     if (j == null) return;
-    e.preventDefault(); items[j].focus(); items[j].click();
+    e.preventDefault(); items[j].focus(); if (selectOnMove) items[j].click();
   });
   const items = [...group.querySelectorAll('[role="radio"]')];
   const on = items.findIndex(b => b.getAttribute('aria-checked') === 'true');
@@ -111,3 +112,26 @@ export function Editor({ title, hint, onClose }, ...body) {
 
 /* Group({label}, ...children) - a labelled cluster inside an editor */
 export const Group = ({ label }, ...children) => h('div', { class: 'c-group' }, h('div', { class: 'c-group__label', text: label }), children);
+
+/* Segmented({options:[{v,l}], value, onChange, label}) - a compact radiogroup, used for the mode switch */
+export function Segmented({ options, value, onChange, label }) {
+  return rovingRadios(h('div', { class: 'c-seg', role: 'radiogroup', 'aria-label': label },
+    options.map(o => h('button', { type: 'button', class: 'c-seg__btn', role: 'radio', 'aria-checked': String(o.v === value), dataset: { fid: `seg:${o.v}` }, onClick: () => onChange(o.v) }, o.l))));
+}
+
+/* OptionList({options:[{v,l,tone?}], value, onSelect(v, event), label}) - the guided screen's big answers, numbered for the keyboard.
+   Arrow keys move focus only; Enter, Space, a click or the number key picks (picking advances the screen). */
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+export function OptionList({ options, value, onSelect, label, fid = 'opt' }) {
+  return rovingRadios(h('div', { class: cx('c-options', options.length > 6 && 'c-options--cols'), role: 'radiogroup', 'aria-label': label },
+    options.map((o, i) => h('button', {
+      type: 'button', role: 'radio', 'aria-checked': String(o.v === value), class: cx('c-option', o.tone && `t-${o.tone}`), dataset: { fid: `${fid}:${o.v}` },
+      onClick: e => onSelect(o.v, e)
+    }, h('span', { class: 'c-option__key', 'aria-hidden': 'true', text: KEYS[i] || '' }), h('span', { class: 'c-option__label', text: o.l }), o.tone && h('i', { class: 'c-option__dot', 'aria-hidden': 'true' })))), false);
+}
+
+/* Progress({value, max, label}) - native progress element */
+export const Progress = ({ value, max, label }) => h('progress', { class: 'c-progress', value, max, 'aria-label': label });
+
+/* Pill({label, value, onClick}) - an answered question on the message screen; pressing it reopens that question */
+export const Pill = ({ id, label, value, onClick }) => h('button', { type: 'button', class: 'c-pill', dataset: { fid: `pill:${id}` }, 'aria-label': `Change ${label}: ${value}`, onClick }, `${label}: `, h('b', { text: value }));

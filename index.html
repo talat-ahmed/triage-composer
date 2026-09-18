@@ -21,15 +21,19 @@
           <h1>Klinik Triage Composer</h1>
           <p class="c-lede">Pick a start, change anything that differs, copy.</p>
         </div>
-        <div class="c-signer" id="signer">
+        <div class="l-header__tools">
+          <div id="mode-switch"></div>
+          <div class="c-signer" id="signer">
           <label class="c-signer__label" for="signer-name">Signed as</label>
           <input class="c-signer__input" id="signer-name" type="text" placeholder="Your name" autocomplete="off">
+          </div>
         </div>
       </div>
       <div class="l-today" id="today"></div>
     </header>
 
     <main class="l-work">
+      <section class="l-guided" id="guided" aria-label="Guided questions" hidden></section>
       <section class="l-build" aria-labelledby="h-start">
         <div class="c-block">
           <h2 class="c-eyebrow" id="h-start">Start from</h2>

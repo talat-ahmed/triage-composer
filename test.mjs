@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { PRESETS, DEFAULT_SETTINGS, WHO, MODALITY, URGENCY, SERVICES, SERVICE } from './data.js';
 import { compose, defaultState, applyChange, appAvail, effFb, photosAvail, showCapacity, restOfWeek, todayKey } from './compose.js';
-import { caseChunks, caseLabel, presetGroups } from './summary.js';
+import { caseChunks, caseLabel, presetGroups, guidedSteps, QUESTIONS, FINAL_IDS } from './summary.js';
 
 const S = { ...DEFAULT_SETTINGS, name: 'Test' };
 const make = (o, extra = {}, settings = S) => Object.assign(defaultState(o, settings), extra);
@@ -178,6 +178,20 @@ test('the Start row shows the primary starts first, grouped Book / Signpost / Ot
   assert.equal(primary.flatMap(g => g.items).length, PRESETS.filter(p => p.primary).length);
   assert.equal(all.flatMap(g => g.items).length, PRESETS.length);
   assert.equal(primary[0].items[0].v, '0', 'the everyday case is the first start');
+});
+
+test('guided asks every non-final chunk as a question, in order, then one final screen', () => {
+  const cases = PRESETS.map(p => make(p.o, p.s));
+  for (const w of WHO) for (const m of MODALITY) for (const u of URGENCY) cases.push(make('book', { who: w.v, modality: m.v, urgency: u.v }));
+  for (const st of cases) {
+    const steps = guidedSteps(st, S), chunks = caseChunks(st, S);
+    assert.deepEqual(steps.slice(0, -1).map(x => x.id), chunks.filter(c => !FINAL_IDS.includes(c.id)).map(c => c.id));
+    for (const x of steps.slice(0, -1)) assert.ok(QUESTIONS[x.id], `${x.id} has no question wording`);
+    const last = steps[steps.length - 1];
+    assert.equal(last.kind, 'final'); assert.ok(last.chunks.some(c => c.id === 'opts') && last.chunks.some(c => c.id === 'notes'));
+    assert.ok(steps.length >= 3 && steps.length <= 12, `${steps.length} screens`);
+  }
+  assert.equal(guidedSteps(make('book', PRESETS[0].s), S).length, 6, 'the everyday booking is six screens');
 });
 
 console.log(`${n} checks passed`);

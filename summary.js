@@ -118,3 +118,38 @@ export const presetGroups = (only) => {
   PRESETS.forEach((p, i) => { if (!only || only(p)) groups.find(x => x.l === PRESET_GROUP(p)).items.push({ v: String(i), l: p.l }); });
   return groups.filter(g => g.items.length);
 };
+
+/* ---------- Guided mode: one question per screen, driven by the same chunks ---------- */
+/* Question wording per chunk id. optional: the learner may skip it (Next / Skip shown when it has free text). */
+export const QUESTIONS = {
+  outcome: { q: 'What should happen with this case?' },
+  who: { q: 'Who should the patient see?' },
+  named: { q: 'Which doctor or ANP?' },
+  person: { q: 'Anyone in particular?', optional: true },
+  reason: { q: 'Why them? The team tells the patient this.' },
+  purpose: { q: 'What is the appointment for?', optional: true },
+  modality: { q: 'Face-to-face or telephone?' },
+  photos: { q: 'Do you need photos from the patient?', sub: 'The team will ask for them before the call' },
+  urgency: { q: 'How soon?' },
+  day: { q: 'Which day?' },
+  dayFb: { q: 'If they cannot make that day, what next?' },
+  list: { q: 'Which of your lists?' },
+  check: { q: 'What should the team ask the patient?' },
+  then: { q: 'If the problem is ongoing, what then?' },
+  service: { q: 'Which service?' },
+  adminType: { q: 'What kind of request?' },
+  patientMsg: { q: 'Anything to text the patient?', optional: true }
+};
+/* Chunks that are folded into the final "Anything else" screen rather than asked one by one */
+export const FINAL_IDS = ['fb', 'opts', 'notes'];
+
+/* The guided steps for a case: every non-final chunk as a question, then the final options screen.
+   Each step carries its chunk, so the renderer needs nothing else. */
+export function guidedSteps(st, S) {
+  const chunks = caseChunks(st, S);
+  const steps = chunks.filter(c => !FINAL_IDS.includes(c.id)).map(c => ({ id: c.id, q: (QUESTIONS[c.id] || {}).q || c.label, sub: (QUESTIONS[c.id] || {}).sub || c.hint, optional: !!(QUESTIONS[c.id] || {}).optional, chunk: c }));
+  const finals = chunks.filter(c => FINAL_IDS.includes(c.id));
+  const parts = finals.filter(c => !c.muted && c.id !== 'notes').map(c => c.value);
+  steps.push({ id: 'opts', q: 'Anything else for the team?', sub: 'Defaults are already applied. Tap anything to change it.', kind: 'final', chunks: finals, ans: parts.join(' · ') || 'Defaults' });
+  return steps;
+}

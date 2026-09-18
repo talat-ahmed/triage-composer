@@ -2,7 +2,10 @@
 
 Builds the message a triaging clinician sends to the admin team for a Klinik case in a click or two: what should happen, with whom, and by when — within the Klinik character limit and in line with the 2026/27 GP contract access requirements and GMC guidance on delegation.
 
-One screen, three zones: **Start from** (the everyday cases as buttons, plus your recent customised ones), **This case** (the current case as a line of chunks — each is a button that opens just that choice), and the **message**. The common case is one click (Copy); a tweak is two or three more.
+Two layouts over the same case model, switched in the header and remembered per device:
+
+- **Guided** (the default for a new device): one question per screen, answers advance automatically, the message appears at the end with every answer as a pill you can press to change it. Built for people learning to triage: every decision is asked, with the recommended default already highlighted.
+- **Quick**: three zones — **Start from** (the everyday cases as buttons, plus your recent customised ones), **This case** (the current case as a line of chunks — each is a button that opens just that choice), and the **message**. The common case is one click (Copy); a tweak is two or three more.
 
 Live: https://talat-ahmed.github.io/triage-composer/
 
@@ -15,9 +18,9 @@ Live: https://talat-ahmed.github.io/triage-composer/
 | `app.css` | Base, layout (`l-*`), components (`c-*`), utilities (`u-*`). State is expressed with `is-*` classes and ARIA attributes, never inline styles. |
 | `data.js` | Content: outcomes, clinician types, option lists, toggle labels, phrase tables, national services, quick-start presets, default settings. This is where a practice changes wording. |
 | `compose.js` | The message generator. Pure functions: `defaultState`, `applyChange`, `fragments`, `compose`. No DOM, so it runs in Node for tests. |
-| `summary.js` | The case as chunks: `caseChunks(st, S)` returns one descriptor per decision (label, current value, which editor, its options). Also `caseLabel` for the Recent row and `presetGroups` for the Start row. Pure, tested. |
-| `components.js` | Small DOM component factories built on an `h()` helper: `Button`, `ChipGroup`, `StartRow`, `SwitchList`, `ActionChips`, `TextInput`, `Chunk`, `Editor`, `Group`. Radio groups use a roving tabindex (one tab stop, arrow keys move and select). Every control carries a `data-fid` so focus survives a re-render. |
-| `app.js` | Application state, per-device settings, the renderer and events. Rendering is one-way: change state → `render()`, which then puts keyboard focus back where it belongs. |
+| `summary.js` | The case as chunks: `caseChunks(st, S)` returns one descriptor per decision (label, current value, which editor, its options). `guidedSteps` turns the same chunks into the Guided questions (`QUESTIONS` holds the wording). Also `caseLabel` for the Recent row and `presetGroups` for the Start row. Pure, tested. |
+| `components.js` | Small DOM component factories built on an `h()` helper: `Button`, `ChipGroup`, `StartRow`, `SwitchList`, `ActionChips`, `TextInput`, `Chunk`, `Editor`, `Group`, `Segmented`, `OptionList`, `Progress`, `Pill`. Radio groups use a roving tabindex (one tab stop; arrow keys move and select, except in `OptionList` where arrows only move because picking advances the screen). Every control carries a `data-fid` so focus survives a re-render. |
+| `app.js` | Application state, per-device settings, the Quick and Guided renderers, and events. Rendering is one-way: change state → `render()`, which then puts keyboard focus back where it belongs (in Guided, on the new question's heading). |
 | `build.mjs` | Bundles everything into `dist/index.html` (standalone single file) and `dist/artifact.html` (fragment for hosts that add their own skeleton). |
 | `test.mjs` | Generator checks that run without a browser: `node test.mjs`. |
 
@@ -36,7 +39,8 @@ The modular files are what GitHub Pages serves (`index.html` loads `app.js` as a
 - New clinician type: add to `WHO` in `data.js`, a phrase in `whoPhrase()` in `compose.js`, and (if it has a roster) an entry in `PERSON_TYPES`/`ANY_LABEL` plus a settings field.
 - New signposting service: add an object to `SERVICES` with `main`, `covers`, `link`, `group`, and defaults for `safety`/`comeback`.
 - New start: add to `PRESETS`; `primary: true` puts it in the row before "More starts".
-- New decision in a case: add a chunk in `caseChunks()` in `summary.js` and, if it needs a new kind of editor, a case in `renderCase()` in `app.js`.
+- New decision in a case: add a chunk in `caseChunks()` in `summary.js` and its question wording in `QUESTIONS`; if it needs a new kind of editor, add a case in `renderCase()` and `stageBody()` in `app.js`.
+- Guided input rules: no tap guard. A second click within 350 ms at the same spot is treated as the same tap landing on the next screen and ignored; keyboard input is never ignored. Number keys 1–0 pick an option only while focus is inside the question.
 
 ## Running locally
 

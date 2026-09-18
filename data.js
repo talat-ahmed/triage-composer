@@ -122,6 +122,7 @@ export const MOD_VERB = {
 
 export const DEFAULT_SETTINGS = {
   name: '', limit: 500, safetyDefault: true, breaks: true,
+  mode: 'guided',                       /* 'guided' (one question per screen, the default for a new device) or 'quick' (start + adjust) */
   today: { on: false, reason: 'sick', custom: '', date: '' },
   moreStarts: false,                    /* whether the full Start row is expanded */
   recent: [],                           /* last few customised cases copied on this device: [{ l, o, s }] */

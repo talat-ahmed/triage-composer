@@ -64,6 +64,7 @@
   /* Sizing */
   --measure: 72ch;
   --page-max: 1180px;
+  --stage-max: 720px;
   --control-h: 36px;      /* every control at least this tall */
   --target-min: 28px;     /* smaller secondary targets, still above the 24px minimum */
   --focus-w: 2px;

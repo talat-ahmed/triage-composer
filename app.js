@@ -1,11 +1,12 @@
-/* app.js - application state, per-device settings, the renderer and events.
-   One screen: Start from (presets and recent cases) -> This case (a line of editable chunks) -> Message.
-   Rendering is one-way: change state -> render(). Message text comes from compose.js; chunk descriptors from summary.js. */
+/* app.js - application state, per-device settings, the two renderers and events.
+   Quick: Start from (presets and recent cases) -> This case (a line of editable chunks) -> Message.
+   Guided: one question per screen, then the message. Both are driven by the same chunk descriptors from summary.js.
+   Rendering is one-way: change state -> render(). Message text comes from compose.js. */
 
 import { DEFAULT_SETTINGS, PRESETS, CAPACITY, TEXT_FOR } from './data.js';
 import { compose, defaultState, applyChange, dayOk, effFb, effDayFb, todayKey, capacityPhrase } from './compose.js';
-import { caseChunks, caseLabel, presetGroups } from './summary.js';
-import { h, replaceChildren, Button, ChipGroup, StartRow, SwitchList, ActionChips, TextInput, Chunk, Editor, Group } from './components.js';
+import { caseChunks, caseLabel, presetGroups, guidedSteps } from './summary.js';
+import { h, replaceChildren, Button, ChipGroup, StartRow, SwitchList, ActionChips, TextInput, Chunk, Editor, Group, Segmented, OptionList, Progress, Pill } from './components.js';
 
 /* ---------- Settings (per device) ---------- */
 const STORAGE_KEY = 'ktc.settings';
@@ -25,9 +26,15 @@ let openChunk = null;      /* id of the chunk whose editor is showing */
 let focusNext = null;      /* data-fid to focus after the next render, or 'editor' for the editor's first control */
 let edited = false;
 let booted = false;        /* announcements start after the first paint */
+let mode = S.mode === 'quick' ? 'quick' : 'guided';
+let answered = new Set();  /* guided: step ids already answered */
+let lastStage = null;      /* guided: the stage last rendered, so a re-render of the same screen does not re-animate */
+let lastPick = null;       /* guided: { t, x, y } of the last option pick, to ignore a double-tap on the same spot */
+const DOUBLE_TAP_MS = 350, DOUBLE_TAP_PX = 24;
 
 const $ = s => document.querySelector(s);
 const el = {
+  modeSwitch: $('#mode-switch'), guided: $('#guided'), build: document.querySelector('.l-build'), preview: document.querySelector('.l-preview'),
   today: $('#today'), presets: $('#presets'), recent: $('#recent'), chunks: $('#chunks'), editor: $('#editor'),
   card: $('#preview-card'), msg: $('#message'), count: $('#count'), countMobile: $('#count-mobile'), meter: $('#meter'), note: $('#note'),
   regen: $('#regen'), copy: $('#copy'), copyMobile: $('#copy-mobile'), next: $('#next'), status: $('#status'),
@@ -75,7 +82,7 @@ function renderToday() {
         const ph = capacityPhrase(S);
         const bar = el.today.querySelector('.c-today__text');
         if (bar) bar.textContent = ph ? ph.l : 'Type what the team can say';
-        if (!!ph !== had) renderCase();   /* the capacity switch appears or disappears with the text */
+        if (!!ph !== had) { if (mode === 'guided') renderGuided(); else renderCase(); }   /* the capacity switch appears or disappears with the text */
         updateMessage();
       }
     })));
@@ -97,10 +104,11 @@ function applyRecent(i) {
   render();
   announce(`Recent case: ${r.l}`);
 }
-function setOutcome(id) { st = defaultState(id, S); preset = null; }
+function setOutcome(id) { st = defaultState(id, S); preset = null; answered = new Set(['outcome']); }
 function choose(key, value, e) {
   if (key === 'outcome') setOutcome(value); else { applyChange(st, key, value, S); preset = null; }
-  /* A mouse pick closes the editor and the case line becomes the confirmation; keyboard picks keep it open so arrows can move on. */
+  if (mode === 'guided') { if (TEXT_FOR[key] !== value) answered.add(stepIdFor(key)); render(); return; }
+  /* Quick: a mouse pick closes the editor and the case line becomes the confirmation; keyboard picks keep it open so arrows can move on. */
   if (e && e.detail > 0 && TEXT_FOR[key] !== value) closeEditor(); else render();
 }
 function toggle(key) { applyChange(st, key, !st[key], S); preset = null; render(); }
@@ -108,16 +116,31 @@ function setText(key, value) {
   st[key] = value; preset = null;
   if (key === 'namedCustom' && value) st.named = '';
   if (key === 'personCustom' && value) st.person = '';
-  renderChunksOnly(); updateMessage();
+  if (mode === 'quick') renderChunksOnly();
+  updateMessage();
+}
+/* Which guided step a state key belongs to (keys not listed are their own step) */
+const stepIdFor = key => ({ namedCustom: 'named', personCustom: 'person' }[key] || key);
+function setMode(m) {
+  if (m === mode) return;
+  mode = m; S.mode = m; saveSettings();
+  if (m === 'guided') { st = defaultState('book', S); preset = null; answered = new Set(); lastStage = null; openChunk = null; }
+  focusNext = `seg:${m}`;
+  render();
+  announce(m === 'guided' ? 'Guided: one question at a time.' : 'Quick: start from a preset and adjust the case line.');
 }
 function openEditor(id) { openChunk = openChunk === id ? null : id; focusNext = openChunk ? 'editor' : `chunk:${id}`; render(); }
 function closeEditor() { const id = openChunk; openChunk = null; focusNext = id ? `chunk:${id}` : null; render(); }
-function newCase() { focusNext = 'start:0'; applyPreset(0); }
+function newCase() {
+  if (mode === 'guided') { st = defaultState('book', S); preset = null; answered = new Set(); lastStage = null; render(); return; }
+  focusNext = 'start:0'; applyPreset(0);
+}
 
 /* ---------- Message ---------- */
 function updateMessage() {
   const r = compose(st, S);
   el.msg.value = r.text;
+  const g = $('#gmsg'); if (g) g.value = r.text;
   edited = false; el.regen.hidden = true;
   paintCount(r);
 }
@@ -130,6 +153,8 @@ function paintCount(r) {
   el.meter.classList.toggle('is-over', over); el.meter.classList.toggle('is-warn', warn);
   el.note.classList.toggle('is-over', over);
   el.note.textContent = over ? `Over the Klinik limit by ${n - limit} characters. Switch off an option or trim the text.` : (r && r.compacted) ? 'Shortened automatically to fit the Klinik limit.' : '';
+  const gc = $('#gcount');
+  if (gc) { gc.textContent = label + (over ? ` — over the Klinik limit by ${n - limit}, trim the text` : (r && r.compacted) ? ' — shortened to fit' : ''); gc.classList.toggle('is-over', over); }
 }
 function rememberRecent() {
   if (preset !== null) return;                       /* a plain start is already in the Start row */
@@ -143,12 +168,13 @@ async function copy() {
   let ok = false;
   try { await navigator.clipboard.writeText(t); ok = true; } catch { /* fall through */ }
   if (!ok) { try { el.msg.focus(); el.msg.select(); ok = document.execCommand('copy'); el.msg.setSelectionRange(0, 0); } catch { /* ignore */ } }
-  for (const b of [el.copy, el.copyMobile]) {
+  for (const b of [el.copy, el.copyMobile, ...document.querySelectorAll('[data-copy]')]) {
     b.textContent = ok ? 'Copied' : 'Select and copy manually'; b.classList.toggle('is-done', ok);
     setTimeout(() => { b.textContent = 'Copy message'; b.classList.remove('is-done'); }, 1600);
   }
   announce(ok ? 'Message copied to the clipboard. Paste it into Klinik.' : 'Copy failed. Select the message text and copy it manually.');
   if (ok) rememberRecent();
+  const banner = $('#copied'); if (banner && ok) { banner.hidden = false; const b = banner.querySelector('button'); if (b) b.focus({ preventScroll: true }); }
 }
 
 /* ---------- Start row ---------- */
@@ -196,21 +222,106 @@ function renderCase() {
     case 'groups': body = [c.groups.map(g => Group({ label: g.hint ? `${g.l} — ${g.hint}` : g.l }, chip(c.key, g.opts, g.l))), custom()]; break;
     case 'text': body = [text(c.key, c.textLabel || c.label, c.ph)]; break;
     case 'switches': body = [SwitchList({ items: c.togs.map(t => ({ k: t.k, l: t.l })), values: st, onToggle: toggle })]; break;
-    case 'notes': {
-      const shortcuts = noteShortcuts();
-      body = [
-        shortcuts.length > 0 && ActionChips({ items: shortcuts, value: st.notes.trim(), label: 'Note shortcuts', onPick: n => { st.notes = st.notes.trim() === n ? '' : n; preset = null; render(); } }),
-        TextInput({ id: 'f-notes', value: st.notes, placeholder: 'Anything the team needs to know when booking', label: 'Booking notes (optional, go just above the sign-off)', onInput: v => { st.notes = v; preset = null; renderChunksOnly(); syncActionChips(v); updateMessage(); }, onEnter: closeEditor })
-      ];
-      break;
-    }
+    case 'notes': body = notesControls('f-notes'); break;
     default: body = [];
   }
   replaceChildren(el.editor, Editor({ title: c.label, hint: c.hint, onClose: closeEditor }, body));
 }
 function syncActionChips(value) {
-  el.editor.querySelectorAll('.c-chips [aria-pressed]').forEach(b => { const on = b.textContent === value.trim(); b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on)); });
+  document.querySelectorAll('#editor .c-chips [aria-pressed], #guided .c-chips [aria-pressed]').forEach(b => { const on = b.textContent === value.trim(); b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on)); });
 }
+
+/* ---------- Guided: one question per screen, then the message ---------- */
+/* A second click within DOUBLE_TAP_MS at the same spot is the same tap landing on the next screen; anything else is a real pick. */
+function isDoubleTap(e) {
+  if (!e || !e.isTrusted || e.detail === 0) return false;         /* keyboard and synthetic clicks are never a double-tap */
+  const now = performance.now(), hit = lastPick && now - lastPick.t < DOUBLE_TAP_MS && Math.abs(e.clientX - lastPick.x) < DOUBLE_TAP_PX && Math.abs(e.clientY - lastPick.y) < DOUBLE_TAP_PX;
+  lastPick = { t: now, x: e.clientX, y: e.clientY };
+  return !!hit;
+}
+function pickOption(key, v, e) { if (isDoubleTap(e)) return; choose(key, v, e); }
+function stageBody(s) {
+  const c = s.chunk;
+  const done = () => { answered.add(s.id); render(); };
+  const actions = (label, optional) => h('div', { class: 'c-stage__actions' }, Button({ label, onClick: done, dataset: { fid: 'stage:next' } }), optional && Button({ label: 'Skip', variant: 'link', onClick: done }));
+  const text = (key, label, ph) => TextInput({ id: `g-${key}`, value: st[key], placeholder: ph, label, onInput: v => setText(key, v), onEnter: done });
+  const pick = (key, opts) => OptionList({ options: opts, value: st[key], onSelect: (v, e) => pickOption(key, v, e), label: s.q, fid: key });
+  const custom = () => (c.textKey && st[c.key] === TEXT_FOR[c.key] ? [text(c.textKey, c.textLabel || c.label, c.ph), actions('Next', s.optional)] : []);
+  if (s.kind === 'final') {
+    const fb = s.chunks.find(x => x.id === 'fb'), opts = s.chunks.find(x => x.id === 'opts');
+    return [
+      fb && Group({ label: "If they can't attend the slot" }, ChipGroup({ options: fb.opts, value: effFb(st), onChange: v => { applyChange(st, 'fb', v, S); preset = null; render(); }, label: 'If they cannot attend', fid: 'fb' })),
+      opts && Group({ label: 'Include' }, SwitchList({ items: opts.togs.map(t => ({ k: t.k, l: t.l })), values: st, onToggle: toggle })),
+      opts && opts.hint && h('p', { class: 'c-hint', text: opts.hint }),
+      Group({ label: 'Booking notes' }, notesControls('g-notes')),
+      h('div', { class: 'c-stage__actions' }, Button({ label: 'Show message →', onClick: done, dataset: { fid: 'stage:next' } }))
+    ];
+  }
+  switch (c.kind) {
+    case 'single': return [pick(c.key, c.opts), custom()];
+    case 'name': {
+      const list = (c.anyLabel ? [{ v: '', l: c.anyLabel }] : []).concat(c.roster.map(n => ({ v: n, l: n })));
+      return [list.length > 0 && pick(c.key, list), text(c.textKey, c.roster.length ? `${c.textLabel}, or type a name` : c.textLabel, c.ph), actions('Next', s.optional)];
+    }
+    case 'groups': return [c.groups.map(g => Group({ label: g.hint ? `${g.l} — ${g.hint}` : g.l }, pick(c.key, g.opts))), custom()];
+    case 'text': return [text(c.key, c.textLabel || c.label, c.ph), actions('Next', s.optional)];
+    default: return [];
+  }
+}
+function notesControls(id) {
+  const shortcuts = noteShortcuts();
+  return [
+    shortcuts.length > 0 && ActionChips({ items: shortcuts, value: st.notes.trim(), label: 'Note shortcuts', onPick: n => { st.notes = st.notes.trim() === n ? '' : n; preset = null; render(); } }),
+    TextInput({ id, value: st.notes, placeholder: 'Anything the team needs to know when booking', label: 'Booking notes (optional, go just above the sign-off)', onInput: v => { st.notes = v; preset = null; if (mode === 'quick') renderChunksOnly(); syncActionChips(v); updateMessage(); } })
+  ];
+}
+function renderGuided() {
+  const steps = guidedSteps(st, S);
+  const idx = steps.findIndex(x => !answered.has(x.id));
+  const cur = idx >= 0 ? steps[idx] : null;
+  const total = steps.length;
+  const stageId = cur ? cur.id : '__message';
+  const fresh = stageId !== lastStage; lastStage = stageId;
+  const back = (cur && idx === 0) ? null : Button({ label: 'Back', variant: 'link', dataset: { fid: 'stage:back' }, onClick: goBack });
+  let stage;
+  if (cur) {
+    stage = h('div', { class: `c-stage${fresh ? ' c-stage--in' : ''}` },
+      Progress({ value: idx, max: total, label: `Question ${idx + 1} of ${total}` }),
+      h('div', { class: 'c-stage__meta' }, h('span', { text: `Question ${idx + 1} of ${total}` }), back),
+      h('h2', { class: 'c-stage__q', id: 'stage-q', tabindex: '-1', dataset: { fid: 'stage:q' }, text: cur.q }),
+      cur.sub && h('p', { class: 'c-stage__sub', text: cur.sub }),
+      stageBody(cur));
+  } else {
+    const chunks = caseChunks(st, S);
+    const pills = chunks.map(c => Pill({ id: c.id, label: c.label, value: c.value, onClick: () => reopen(['fb', 'opts', 'notes'].includes(c.id) ? 'opts' : c.id) }));
+    stage = h('div', { class: `c-stage${fresh ? ' c-stage--in' : ''}` },
+      Progress({ value: total, max: total, label: 'All questions answered' }),
+      h('div', { class: 'c-banner', id: 'copied', hidden: true }, h('span', { text: 'Copied. Paste it into Klinik, then:' }), Button({ label: 'Next case →', onClick: newCase })),
+      h('div', { class: 'c-stage__meta' }, h('span', { text: 'Your message' }), back),
+      h('h2', { class: 'c-stage__q', id: 'stage-q', tabindex: '-1', dataset: { fid: 'stage:q' }, text: 'Copy this into Klinik' }),
+      h('div', { class: 'c-group' },
+        h('textarea', { class: 'c-textarea', id: 'gmsg', spellcheck: 'false', 'aria-label': 'Generated message', onInput: e => { el.msg.value = e.target.value; edited = true; paintCount(null); } }),
+        h('output', { class: 'c-gcount', id: 'gcount', for: 'gmsg' })),
+      h('div', { class: 'c-stage__actions' }, Button({ label: 'Copy message', onClick: copy, 'data-copy': true, dataset: { fid: 'stage:copy' } })),
+      h('div', { class: 'c-pills', role: 'group', 'aria-label': 'Your answers; press one to change it' }, pills),
+      h('div', { class: 'c-stage__foot' }, Button({ label: 'Start over without copying', variant: 'link', quiet: true, onClick: newCase })));
+  }
+  replaceChildren(el.guided, stage);
+  if (!cur) { $('#gmsg').value = el.msg.value; paintCount(null); }
+  /* A new screen: focus its heading so it is read out, or the text field when that is the question */
+  if (fresh) {
+    const inp = (cur && ['text', 'name'].includes(cur.chunk && cur.chunk.kind)) ? el.guided.querySelector('input.c-input') : null;
+    focusNext = inp ? inp.dataset.fid : 'stage:q';
+    if (window.scrollY > 120) window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+}
+function goBack() {
+  const steps = guidedSteps(st, S);
+  let idx = steps.findIndex(x => !answered.has(x.id)); if (idx < 0) idx = steps.length;
+  for (let i = idx - 1; i >= 0; i--) { if (answered.has(steps[i].id)) { answered.delete(steps[i].id); break; } }
+  render();
+}
+function reopen(id) { answered.delete(id); render(); }
 
 /* ---------- Focus: put the keyboard back where it was after a re-render ---------- */
 function restoreFocus() {
@@ -222,13 +333,19 @@ function restoreFocus() {
 }
 
 /* ---------- Top-level render ---------- */
+function renderModeSwitch() {
+  replaceChildren(el.modeSwitch, Segmented({ options: [{ v: 'guided', l: 'Guided' }, { v: 'quick', l: 'Quick' }], value: mode, onChange: setMode, label: 'Layout' }));
+}
 function render() {
   const active = document.activeElement;
   if (!focusNext && active && active.dataset && active.dataset.fid) focusNext = active.dataset.fid;
+  document.body.classList.toggle('is-guided', mode === 'guided');
+  el.guided.hidden = mode !== 'guided'; el.build.hidden = mode === 'guided'; el.preview.hidden = mode === 'guided';
+  renderModeSwitch();
+  const lede = document.querySelector('.c-lede'); if (lede) lede.textContent = mode === 'guided' ? 'Answer one question at a time; the message writes itself.' : 'Pick a start, change anything that differs, copy.';
   renderToday();
-  renderPresets();
-  renderRecent();
-  renderCase();
+  if (mode === 'guided') { renderGuided(); }
+  else { renderPresets(); renderRecent(); renderCase(); }
   updateMessage();
   restoreFocus();
 }
@@ -236,7 +353,14 @@ function render() {
 /* ---------- Events not owned by a component ---------- */
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); copy(); return; }
-  if (e.key === 'Escape' && openChunk && el.editor.contains(document.activeElement)) { e.preventDefault(); closeEditor(); }
+  if (e.key === 'Escape' && openChunk && el.editor.contains(document.activeElement)) { e.preventDefault(); closeEditor(); return; }
+  /* Guided number keys: only while focus is inside the question (never page-wide, never in a text field) */
+  if (mode !== 'guided' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = document.activeElement;
+  if (!el.guided.contains(t) || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
+  const i = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].indexOf(e.key); if (i < 0) return;
+  const opts = el.guided.querySelectorAll('.c-option');
+  if (opts[i]) { e.preventDefault(); opts[i].click(); }
 });
 el.msg.addEventListener('input', () => { edited = true; el.regen.hidden = false; paintCount(null); });
 el.regen.addEventListener('click', updateMessage);
@@ -257,7 +381,8 @@ for (const input of el.settingsForm.querySelectorAll('input[name]')) {
     S[input.name] = input.type === 'number' ? (+input.value || DEFAULT_SETTINGS.limit) : input.value;
     saveSettings();
     if (input.name === 'myDay' && st.urgency === 'day') st.day = dayOk(S.myDay);
-    renderCase(); updateMessage();
+    if (mode === 'guided') renderGuided(); else renderCase();
+    updateMessage();
   });
 }
 function renderSettingToggles() {
@@ -268,6 +393,6 @@ function renderSettingToggles() {
 }
 renderSettingToggles();
 
-/* First paint: the first start is the everyday case */
-applyPreset(0);
+/* First paint: Guided starts at the first question; Quick starts from the everyday case */
+if (mode === 'guided') render(); else applyPreset(0);
 booted = true;
