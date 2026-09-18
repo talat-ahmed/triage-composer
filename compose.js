@@ -1,11 +1,14 @@
 /* compose.js - turns a case state plus practice settings into the message text.
    Pure functions only: no DOM, no storage. Runs in the browser and in Node (see test.mjs). */
 
-import { DAYS, DOCTOR_TYPES, REASONS, PHRASE, MOD_VERB, SERVICE, DEFAULT_SETTINGS } from './data.js';
+import { DAYS, DOCTOR_TYPES, REASONS, PHRASE, MOD_VERB, SERVICE, DEFAULT_SETTINGS, CAPACITY, CAPACITY_OUTCOMES } from './data.js';
 
 export const names = csv => String(csv || '').split(',').map(s => s.trim()).filter(Boolean);
-const orList = a => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} or ${a[a.length - 1]}`);
+export const orList = a => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} or ${a[a.length - 1]}`);
 export const dayOk = d => (DAYS.includes(d) ? d : 'Thursday');
+export const restOfWeek = d => DAYS.slice(DAYS.indexOf(dayOk(d)) + 1);
+export const todayKey = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; };
+export const todayStatus = S => (S && S.today && typeof S.today === 'object') ? S.today : { on: false, reason: 'sick', custom: '', date: '' };
 export const tidy = s => { s = String(s || '').trim(); return !s ? '' : (/[.!?]$/.test(s) ? s : `${s}.`); };
 
 /* A fresh case. Defaults depend on the outcome and on practice settings. */
@@ -13,7 +16,8 @@ export function defaultState(outcome, S = DEFAULT_SETTINGS) {
   return {
     outcome,
     who: 'anygp', named: '', namedCustom: '', person: '', personCustom: '', reason: 'none', reasonCustom: '',
-    modality: 'f2f', urgency: 'soonest', day: dayOk(S.myDay), hub: false,
+    modality: 'f2f', urgency: 'soonest', day: dayOk(S.myDay), dayFb: todayStatus(S).on ? 'week' : 'next', hub: false,
+    capacity: !!todayStatus(S).on,
     purpose: 'none', purposeCustom: '', appResults: false,
     fb: 'self', fbResubmit: false, smsBook: true, mhpCheck: true, photos: 'no',
     safety: ['book', 'contact', 'signpost'].includes(outcome) ? !!S.safetyDefault : false,
@@ -65,6 +69,26 @@ export const photosAvail = st => isDoctor(st) && st.modality === 'tel';
 export const showFb = st => st.who !== 'phleb' && st.modality !== 'tel' && st.urgency !== 'today';
 export const showModality = st => st.who !== 'phleb' && st.who !== 'mhp' && !(st.who === 'nurse' && st.purpose === 'travel');
 export const showUrgency = st => st.who !== 'mhp';
+/* Offering the rest of the week only makes sense if there is any week left */
+export const effDayFb = st => (restOfWeek(st.day).length ? (st.dayFb === 'week' ? 'week' : 'next') : 'next');
+/* The capacity note: only where a patient is being told something, never on a same-day urgent booking.
+   Same-day is a contract duty whatever the staffing, and a shortage mentioned beside an urgent slot reads as permission to offer less. */
+export function showCapacity(st, S = DEFAULT_SETTINGS) {
+  const t = todayStatus(S);
+  if (!t.on || !capacityPhrase(S)) return false;
+  if (!CAPACITY_OUTCOMES.includes(st.outcome)) return false;
+  if (st.outcome === 'book' && (st.urgency === 'today' || st.who === 'phleb')) return false;
+  return true;
+}
+export function capacityPhrase(S = DEFAULT_SETTINGS) {
+  const t = todayStatus(S);
+  if (t.reason === 'custom') {
+    const c = String(t.custom || '').trim().replace(/[.;,]+$/, '');
+    return c ? { l: `You can explain that ${c}.`, s: `You can explain: ${c}.` } : null;
+  }
+  const r = CAPACITY.find(x => x.v === t.reason);
+  return r && r.p ? { l: `You can explain that ${r.p.l}.`, s: `You can explain: ${r.p.s}.` } : null;
+}
 
 export function whoPhrase(st, S) {
   const p = personName(st);
@@ -141,15 +165,21 @@ export function fragments(st, S) {
         case 'routine':
           add(`${verb.l}${purpose} with ${who.l} when next available.`, `${verb.s}${purpose} with ${who.s} when next available.`);
           break;
-        case 'day':
+        case 'day': {
           add(`${verb.l}${purpose} with ${who.l} on ${day} (earliest appointment).`, `${verb.s}${purpose} with ${who.s} on ${day}.`);
-          add(tel ? `If there is no slot this ${day}, please book the following week.` : `If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
+          const rest = restOfWeek(day);
+          if (effDayFb(st) === 'week') add(
+            tel ? `If there is no slot this ${day}, please try ${orList(rest)}.` : `If they cannot make this ${day}, please offer ${orList(rest)}.`,
+            `If not this ${day}: ${rest.join('/')}.`, 4);
+          else add(tel ? `If there is no slot this ${day}, please book the following week.` : `If they cannot make this ${day}, please offer the following week.`, `If not this ${day}, the following week.`, 4);
           break;
+        }
         default:
       }
       if ((st.who === 'me' || st.who === 'named') && st.reason !== 'none') add(reasonSentence(st), null, 3);
       if (st.purpose === 'results' && st.appResults) add('Please let the patient know the results can be viewed in the NHS App before the call.', 'Results are viewable in the NHS App before the call.', 2);
       if (photosAvail(st) && st.photos === 'yes') add(PHRASE.photos.l, PHRASE.photos.s, 4);
+      if (st.capacity && showCapacity(st, S)) { const c = capacityPhrase(S); add(c.l, c.s, 3); }
       if (st.hub) add('Hub slots can also be used if available.', 'Hub OK if available.', 1);
       if (tel) {
         if (st.smsBook) add(PHRASE.smsBook.l, PHRASE.smsBook.s, 3);
@@ -194,6 +224,7 @@ export function fragments(st, S) {
       add('Please add their answer to the case and send it back to me.', 'Add their answer to the case and send back to me.', 4);
     }
     if (st.then !== 'report' && st.settled) add('If it has settled, please complete the case.', 'If settled, complete the case.', 2);
+    if (st.capacity && showCapacity(st, S)) { const c = capacityPhrase(S); add(c.l, c.s, 3); }
     if (st.safety) add(PHRASE.safety.l, PHRASE.safety.s, 2);
     if (st.nosms) add(PHRASE.nosms.l, PHRASE.nosms.s, 2);
     if (st.record) add(PHRASE.record.l, PHRASE.record.s, 1);
@@ -214,6 +245,7 @@ export function fragments(st, S) {
     } else if (st.comeback) {
       add('Please explain that if they do not get help there, they should contact us again.', 'If no help there, they should contact us again.', 4);
     }
+    if (st.capacity && showCapacity(st, S)) { const c = capacityPhrase(S); add(c.l, c.s, 3); }
     if (st.safety) add(PHRASE.safetySignpost.l, PHRASE.safetySignpost.s, 2);
     if (st.record) add(PHRASE.record.l, PHRASE.record.s, 1);
     if (st.plink && svc && svc.link) add(`Please text the patient this NHS link: ${svc.link}`, null, 1);

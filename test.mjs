@@ -2,10 +2,10 @@
 /* test.mjs - checks the message generator without a browser. Run: node test.mjs */
 import assert from 'node:assert/strict';
 import { PRESETS, DEFAULT_SETTINGS, WHO, MODALITY, URGENCY } from './data.js';
-import { compose, defaultState, applyChange, appAvail, effFb, photosAvail } from './compose.js';
+import { compose, defaultState, applyChange, appAvail, effFb, photosAvail, showCapacity, restOfWeek, todayKey } from './compose.js';
 
 const S = { ...DEFAULT_SETTINGS, name: 'Test' };
-const make = (o, extra = {}) => Object.assign(defaultState(o, S), extra);
+const make = (o, extra = {}, settings = S) => Object.assign(defaultState(o, settings), extra);
 let n = 0;
 const test = (name, fn) => { fn(); n++; };
 
@@ -62,6 +62,47 @@ test('shortening kicks in and reports it', () => {
   const st = make('book', { who: 'me', urgency: 'day', reason: 'skin', hub: true, fbResubmit: true, record: true, nosms: true });
   const r = compose(st, { ...S, limit: 380 });
   assert.equal(r.compacted, true);
+});
+
+test('the rest-of-week fallback lists the remaining weekdays, and Friday falls back to the following week', () => {
+  const tue = make('book', { urgency: 'day', day: 'Tuesday', dayFb: 'week' });
+  assert.match(compose(tue, S).text, /If they cannot make this Tuesday, please offer Wednesday, Thursday or Friday\./);
+  assert.deepEqual(restOfWeek('Friday'), []);
+  const fri = make('book', { urgency: 'day', day: 'Friday', dayFb: 'week' });
+  assert.match(compose(fri, S).text, /If they cannot make this Friday, please offer the following week\./);
+  const next = make('book', { urgency: 'day', day: 'Tuesday', dayFb: 'next' });
+  assert.match(compose(next, S).text, /please offer the following week\./);
+});
+
+test("today's capacity note: on where a patient is told something, never on a same-day urgent booking", () => {
+  const T = { ...S, today: { on: true, reason: 'sick', custom: '', date: todayKey() } };
+  const day = make('book', { urgency: 'day', day: 'Tuesday' }, T);
+  assert.equal(showCapacity(day, T), true);
+  assert.match(compose(day, T).text, /You can explain that we have had a doctor call in sick, so we are short staffed today\./);
+
+  for (const st of [
+    make('book', { urgency: 'today' }, T),
+    make('book', { who: 'phleb', urgency: 'routine' }, T),
+    make('admin', {}, T),
+    make('done', {}, T),
+    make('mine', {}, T)
+  ]) {
+    assert.equal(showCapacity(st, T), false);
+    assert.doesNotMatch(compose(st, T).text, /You can explain/);
+  }
+
+  /* off by default when nothing is set for the day, and never when the free text is empty */
+  assert.equal(showCapacity(make('book', {}), S), false);
+  const blank = { ...S, today: { on: true, reason: 'custom', custom: '   ', date: todayKey() } };
+  assert.equal(showCapacity(make('book', {}, blank), blank), false);
+});
+
+test('every preset still fits the limit with the capacity note on', () => {
+  const T = { ...S, today: { on: true, reason: 'sick', custom: '', date: todayKey() } };
+  for (const p of PRESETS) {
+    const r = compose(make(p.o, p.s, T), T);
+    assert.equal(r.over, false, `${p.l} is over the limit with the capacity note on`);
+  }
 });
 
 test('every who/modality/urgency combination produces a sentence', () => {

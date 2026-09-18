@@ -4,9 +4,12 @@
 import {
   OUTCOMES, DAYS, WHO, DOCTOR_TYPES, PERSON_TYPES, ANY_LABEL, MODALITY, URGENCY, REASON_OPTS, PURPOSE_NURSE, PURPOSE_OTHER,
   PHOTO_OPTS, FB_APP, FB_NOAPP, LIST_OPTS, CHECK_OPTS, THEN_OPTS, ADMIN_OPTS, TEXT_FOR, TOGGLES, FB_SHORT,
-  DEFAULT_SETTINGS, PRESETS, SERVICES, SERVICE_GROUPS, SERVICE
+  DEFAULT_SETTINGS, PRESETS, SERVICES, SERVICE_GROUPS, SERVICE, CAPACITY, DAYFB
 } from './data.js';
-import { compose, defaultState, applyChange, names, dayOk, namedName, personName, appAvail, effFb, photosAvail, showFb, showModality, showUrgency } from './compose.js';
+import {
+  compose, defaultState, applyChange, names, orList, dayOk, namedName, personName, appAvail, effFb, photosAvail, showFb, showModality, showUrgency,
+  restOfWeek, todayKey, todayStatus, effDayFb, showCapacity, capacityPhrase
+} from './compose.js';
 import { h, replaceChildren, Button, Segmented, ChipGroup, ToggleChips, SwitchList, ActionChips, TextInput, Field, OptionList, Progress, Pill, Group } from './components.js';
 
 /* ---------- Settings (per device) ---------- */
@@ -14,6 +17,9 @@ const STORAGE_KEY = 'ktc.settings';
 const S = Object.assign({}, DEFAULT_SETTINGS);
 try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) Object.assign(S, JSON.parse(raw)); } catch { /* storage unavailable: run with defaults */ }
 const saveSettings = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch { /* ignore */ } };
+/* Today's capacity note belongs to the date it was set on: a new day starts clear. */
+if (!S.today || typeof S.today !== 'object') S.today = Object.assign({}, DEFAULT_SETTINGS.today);
+if (S.today.on && S.today.date !== todayKey()) S.today = Object.assign({}, DEFAULT_SETTINGS.today);
 const noteShortcuts = () => String(S.noteShortcuts || '').split('|').map(s => s.trim()).filter(Boolean);
 
 /* ---------- Case state ---------- */
@@ -28,7 +34,7 @@ let edited = false;
 
 const $ = s => document.querySelector(s);
 const el = {
-  modeSwitch: $('#mode-switch'), presets: $('#presets'), outcomes: $('#outcomes'), options: $('#options'),
+  modeSwitch: $('#mode-switch'), today: $('#today'), presets: $('#presets'), outcomes: $('#outcomes'), options: $('#options'),
   card: $('#preview-card'), msg: $('#message'), count: $('#count'), countMobile: $('#count-mobile'), meter: $('#meter'), note: $('#note'),
   regen: $('#regen'), copy: $('#copy'), copyMobile: $('#copy-mobile'), signer: $('#signer'), signerName: $('#signer-name'),
   settingsForm: $('#settings-form'), settingsToggles: $('#settings-toggles')
@@ -56,17 +62,24 @@ function defs() {
   if (st.purpose === 'results') opts.push({ k: 'appResults', ...TOGGLES.appResults });
   if (st.who !== 'phleb' && st.modality === 'tel') opts.push({ k: 'smsBook', ...TOGGLES.smsBook });
   else if (d.showFb) opts.push({ k: 'fbResubmit', ...TOGGLES.fbResubmit });
+  d.showCapacity = showCapacity(st, S);
+  if (d.showCapacity) opts.push({ k: 'capacity', ...TOGGLES.capacity });
   d.bookToggles = opts.concat(d.common);
-  d.optHint = st.modality === 'tel' && st.who !== 'phleb' ? 'Phone slots are allocated, not offered' : st.urgency === 'today' ? 'Same-day path escalates to you if no slot' : '';
+  d.rest = restOfWeek(st.day);
+  d.dayFbOpts = d.rest.length ? DAYFB : [DAYFB[1]];
+  d.dayFbHint = d.rest.length ? `Rest of this week: ${orList(d.rest)}` : 'Friday has no rest of the week left';
+  const urgentHint = 'Same-day path escalates to you if no slot' + (todayStatus(S).on ? ". Today's capacity note is left off urgent cases" : '');
+  d.optHint = st.modality === 'tel' && st.who !== 'phleb' ? 'Phone slots are allocated, not offered' : st.urgency === 'today' ? urgentHint : '';
   d.listHint = `Slot label: '${(S.slot || '').trim() || 'Tel Triage KLINIK DR TO BOOK ONLY'}'`;
   d.mineToggles = [{ k: 'upload', ...TOGGLES.upload }, d.common[1], d.common[2]];
-  d.contactToggles = [{ k: 'settled', ...TOGGLES.settled }].concat(d.common);
+  d.contactToggles = [{ k: 'settled', ...TOGGLES.settled }].concat(d.showCapacity ? [{ k: 'capacity', ...TOGGLES.capacity }] : [], d.common);
   const byGroup = g => SERVICES.filter(s => s.group === g).map(s => ({ v: s.id, l: s.label }));
   d.serviceGroups = SERVICE_GROUPS.map(g => ({ ...g, opts: byGroup(g.id).concat(g.extra || [], (g.tail || []).flatMap(byGroup), g.custom ? [g.custom] : []) }));
   const svc = SERVICE(st.service);
   const t = st.service === 'nhsapp' ? [{ k: 'confirm', ...TOGGLES.confirm }] : [{ k: 'comeback', ...TOGGLES.comeback }];
   if (svc) t.push({ k: 'explain', ...TOGGLES.explain });
   if (svc && svc.link) t.push({ k: 'plink', ...TOGGLES.plink });
+  if (d.showCapacity) t.push({ k: 'capacity', ...TOGGLES.capacity });
   d.signpostToggles = t.concat([d.common[0], d.common[2]]);
   d.adminToggles = (st.adminType === 'letter' ? [{ k: 'adminList', ...TOGGLES.adminList }] : []).concat([d.common[2]]);
   d.doneToggles = [{ k: 'addList', ...TOGGLES.addList }, { k: 'complete', ...TOGGLES.complete }, { k: 'nosms', ...TOGGLES.nosmsDone }];
@@ -74,6 +87,48 @@ function defs() {
 }
 const labelOf = (opts, v) => (opts.find(o => o.v === v) || {}).l || '';
 const onLabels = list => { const on = list.filter(t => st[t.k]).map(t => t.s || t.l); return on.length ? on.join(' · ') : 'None'; };
+
+/* ---------- Today's capacity status (set once, rides on every message until cleared) ---------- */
+function stampToday() { S.today.date = todayKey(); saveSettings(); }
+function setTodayOn(on) {
+  S.today.on = on;
+  if (!on) S.today.custom = '';
+  stampToday();
+  st.capacity = on;
+  if (on && st.dayFb !== 'week') st.dayFb = 'week';
+  render();
+}
+function setTodayReason(v) { S.today.reason = v; st.capacity = true; stampToday(); render(); }
+function renderToday() {
+  const t = S.today;
+  if (!t.on) {
+    replaceChildren(el.today, h('div', { class: 'c-today' },
+      h('div', { class: 'c-today__row' },
+        h('span', { class: 'c-today__label', text: 'Today' }),
+        h('span', { class: 'c-today__text', text: 'Normal capacity' }),
+        Button({ label: 'Add a capacity note', variant: 'link', onClick: () => setTodayOn(true) }))));
+    return;
+  }
+  const phrase = capacityPhrase(S);
+  replaceChildren(el.today, h('div', { class: 'c-today is-on' },
+    h('div', { class: 'c-today__row' },
+      h('span', { class: 'c-today__label', text: 'Today' }),
+      h('span', { class: 'c-today__text', text: phrase ? phrase.l : 'Type what the team can say' }),
+      Button({ label: 'Clear', variant: 'ghost', onClick: () => setTodayOn(false) })),
+    ChipGroup({ options: CAPACITY.map(c => ({ v: c.v, l: c.l })), value: t.reason, onChange: setTodayReason, label: "Today's capacity", size: 'sm' }),
+    t.reason === 'custom' && TextInput({
+      value: t.custom, placeholder: 'e.g. two of our clinicians are away at training today', label: 'What the team can explain',
+      onInput: v => {
+        const had = !!capacityPhrase(S);
+        t.custom = v; stampToday();
+        const ph = capacityPhrase(S);
+        const bar = el.today.querySelector('.c-today__text');
+        if (bar) bar.textContent = ph ? ph.l : 'Type what the team can say';
+        if (!!ph !== had) renderPanelOnly();   /* the capacity switch appears or disappears with the text */
+        updateMessage();
+      }
+    })));
+}
 
 /* ---------- State changes ---------- */
 function setOutcome(id) { st = defaultState(id, S); answered = new Set(['outcome']); clearPresetHighlight(); render(); }
@@ -162,6 +217,7 @@ function renderPanel() {
     if (d.showPhotos) rows.push(Field({ label: 'Photos', hint: 'Requested before the call' }, chip('photos', PHOTO_OPTS, { label: 'Photos' })));
     if (d.showUrgency) rows.push(Field({ label: 'When' }, chip('urgency', URGENCY, { label: 'When' })));
     if (d.showUrgency && st.urgency === 'day') rows.push(Field({ label: 'Day' }, chip('day', DAYS.map(x => ({ v: x, l: x })), { label: 'Day' })));
+    if (d.showUrgency && st.urgency === 'day') rows.push(Field({ label: 'If not that day', hint: d.dayFbHint }, ChipGroup({ options: d.dayFbOpts, value: effDayFb(st), onChange: v => choose('dayFb', v), label: 'If not that day' })));
     if (d.showFb) rows.push(Field({ label: 'If unable to attend', hint: d.fbHint }, ChipGroup({ options: d.fbOpts, value: effFb(st), onChange: v => choose('fb', v), label: 'If unable to attend' })));
     rows.push(Field({ label: 'Options', hint: d.optHint }, switches(d.bookToggles)));
   } else if (st.outcome === 'mine') {
@@ -210,6 +266,7 @@ function guidedSteps() {
     if (d.showPhotos) s.push({ id: 'photos', q: 'Do you need photos from the patient?', short: 'Photos', kind: 'single', key: 'photos', opts: PHOTO_OPTS, sub: 'The team will ask for them before the call', ans: st.photos === 'yes' ? 'Yes' : 'No' });
     if (d.showUrgency) s.push({ id: 'urgency', q: 'How soon?', short: 'When', kind: 'single', key: 'urgency', opts: URGENCY, ans: labelOf(URGENCY, st.urgency) });
     if (d.showUrgency && st.urgency === 'day') s.push({ id: 'day', q: 'Which day?', short: 'Day', kind: 'single', key: 'day', opts: DAYS.map(x => ({ v: x, l: x })), ans: dayOk(st.day) });
+    if (d.showUrgency && st.urgency === 'day') s.push({ id: 'dayFb', q: 'If they cannot make that day, what next?', short: 'If not that day', kind: 'single', key: 'dayFb', opts: d.dayFbOpts, sub: d.dayFbHint, ans: labelOf(d.dayFbOpts, effDayFb(st)) });
     s.push(finalStep(d.bookToggles, d.showFb ? d.fbOpts : null, d.optHint));
   } else if (st.outcome === 'mine') {
     s.push({ id: 'list', q: 'Which of your lists?', short: 'List', kind: 'single', key: 'list', opts: LIST_OPTS, sub: d.listHint, ans: labelOf(LIST_OPTS, st.list) });
@@ -315,6 +372,7 @@ function renderPanelOnly() { if (mode === 'guided') renderGuided(); else renderP
 function render() {
   document.body.classList.toggle('is-guided', mode === 'guided');
   replaceChildren(el.modeSwitch, Segmented({ options: [{ v: 'panel', l: 'Panel' }, { v: 'guided', l: 'Guided', tag: 'beta' }], value: mode, onChange: setMode, label: 'Layout', compact: true }));
+  renderToday();
   renderOutcomes();
   renderPanelOnly();
   updateMessage();

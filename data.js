@@ -12,6 +12,21 @@ export const OUTCOMES = [
 
 export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
+/* Today's capacity note: a fact about the day, not the case. Set once, rides on every message, clears when the date changes.
+   No clinician is ever named - a colleague's sickness is their own health information. */
+export const CAPACITY = [
+  { v: 'sick', l: 'A doctor off sick', p: { l: 'we have had a doctor call in sick, so we are short staffed today', s: 'we are short staffed today (doctor off sick)' } },
+  { v: 'short', l: 'Short staffed today', p: { l: 'we are short staffed today', s: 'we are short staffed today' } },
+  { v: 'demand', l: 'Unusually high demand', p: { l: 'we are dealing with unusually high demand today', s: 'demand is unusually high today' } },
+  { v: 'clinic', l: 'A clinic cancelled', p: { l: 'one of our clinics has had to be cancelled today', s: 'a clinic was cancelled today' } },
+  { v: 'custom', l: 'Other' }
+];
+/* Outcomes where telling the patient about capacity makes sense */
+export const CAPACITY_OUTCOMES = ['book', 'contact', 'signpost'];
+
+/* When a specific day is booked, what the team offers if the patient cannot make it */
+export const DAYFB = [{ v: 'week', l: 'Rest of this week' }, { v: 'next', l: 'The following week' }];
+
 export const WHO = [
   { v: 'anygp', l: 'Any doctor/ANP' },
   { v: 'anydr', l: 'Any doctor' },
@@ -83,7 +98,8 @@ export const TOGGLES = {
   adminList: { l: 'Add to my admin list once agreed', c: 'Add to my admin list', s: 'Admin list' },
   addList: { l: 'Put it on my EMIS list', c: 'Put on my EMIS list', s: 'EMIS list' },
   complete: { l: 'Complete the case', c: 'Complete the case', s: 'Complete case' },
-  nosmsDone: { k: 'nosms', l: 'No text to patient needed', c: 'No text to patient needed', s: 'No text' }
+  nosmsDone: { k: 'nosms', l: 'No text to patient needed', c: 'No text to patient needed', s: 'No text' },
+  capacity: { l: "Team can explain today's capacity to the patient", c: "Explain today's capacity", s: 'Capacity note' }
 };
 export const FB_SHORT = { self: 'Self-book fallback', next: 'Next-slot fallback', both: 'Self-book or next slot', none: 'No fallback' };
 
@@ -106,6 +122,7 @@ export const MOD_VERB = {
 
 export const DEFAULT_SETTINGS = {
   name: '', limit: 500, safetyDefault: true, breaks: true, mode: 'panel',
+  today: { on: false, reason: 'sick', custom: '', date: '' },
   gps: '', pas: '', pharms: '', physios: '', nurses: '', mhps: '', mhpDay: 'Tuesday', mhpArea: 'Tower Hamlets',
   slot: 'Tel Triage KLINIK DR TO BOOK ONLY', myDay: 'Thursday',
   noteShortcuts: 'Take history and feedback to duty doctor | No need to call the patient - can send SMS after finding out the information'
