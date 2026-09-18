@@ -129,7 +129,7 @@ test('the local sexual health services name the clinic, and the national option 
   /* both are open access, so no safety-net by default, and both have a link the team can text */
   for (const id of ['alleast', 'homerton']) {
     assert.equal(signpost(id).safety, false, `${id} should not default to a safety-net line`);
-    assert.match(compose(signpost(id, { plink: true }), S).text, new RegExp(`text the patient this NHS link: ${SERVICE(id).link.replace(/[.*+?^${}()|[\]\\]/g, '\\test('every who/modality/urgency combination produces a sentence'')}`));
+    assert.match(compose(signpost(id, { plink: true }), S).text, new RegExp(`text the patient this NHS link: ${SERVICE(id).link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
   }
 
   assert.ok(SERVICE('sexual'), 'the national find-a-clinic option should still exist');
