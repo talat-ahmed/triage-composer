@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* test.mjs - checks the message generator without a browser. Run: node test.mjs */
 import assert from 'node:assert/strict';
-import { PRESETS, DEFAULT_SETTINGS, WHO, MODALITY, URGENCY } from './data.js';
+import { PRESETS, DEFAULT_SETTINGS, WHO, MODALITY, URGENCY, SERVICES, SERVICE } from './data.js';
 import { compose, defaultState, applyChange, appAvail, effFb, photosAvail, showCapacity, restOfWeek, todayKey } from './compose.js';
 
 const S = { ...DEFAULT_SETTINGS, name: 'Test' };
@@ -103,6 +103,37 @@ test('every preset still fits the limit with the capacity note on', () => {
     const r = compose(make(p.o, p.s, T), T);
     assert.equal(r.over, false, `${p.l} is over the limit with the capacity note on`);
   }
+});
+
+/* A signpost case set up the way the app sets it up: applyChange carries the service's own safety and come-back defaults */
+const signpost = (id, extra = {}) => { const st = defaultState('signpost', S); applyChange(st, 'service', id, S); return Object.assign(st, extra); };
+
+test('every service fits the limit with its description and its link switched on', () => {
+  for (const svc of SERVICES) {
+    const r = compose(signpost(svc.id, { explain: true, plink: true, notes: 'Prefers mornings' }), S);
+    assert.equal(r.over, false, `${svc.label} is over the limit: ${r.length} chars`);
+    assert.ok(r.text.includes(svc.main.s) || r.text.includes(svc.main.l), `${svc.label}: the main sentence is missing`);
+  }
+});
+
+test('the local sexual health services name the clinic, and the national option stays for anyone out of area', () => {
+  const ae = compose(signpost('alleast', { explain: true }), S).text;
+  assert.match(ae, /All East sexual health \(alleast\.nhs\.uk\)/);
+  assert.match(ae, /open access, free and confidential, no referral needed/);
+  assert.match(ae, /emergency contraception, PrEP and PEP/);
+
+  const hom = compose(signpost('homerton', { explain: true }), S).text;
+  assert.match(hom, /Homerton sexual health \(homerton\.nhs\.uk\/sexual-health\)/);
+  assert.match(hom, /Clifden Centre, the Ivy Centre and John Scott Health Centre/);
+
+  /* both are open access, so no safety-net by default, and both have a link the team can text */
+  for (const id of ['alleast', 'homerton']) {
+    assert.equal(signpost(id).safety, false, `${id} should not default to a safety-net line`);
+    assert.match(compose(signpost(id, { plink: true }), S).text, new RegExp(`text the patient this NHS link: ${SERVICE(id).link.replace(/[.*+?^${}()|[\]\\]/g, '\\test('every who/modality/urgency combination produces a sentence'')}`));
+  }
+
+  assert.ok(SERVICE('sexual'), 'the national find-a-clinic option should still exist');
+  assert.equal(SERVICE('sexual').group, 'self');
 });
 
 test('every who/modality/urgency combination produces a sentence', () => {
