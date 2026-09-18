@@ -188,7 +188,7 @@ export const SERVICES = [
     main:{l:'Please signpost the patient to self-refer to the local maternity service - no GP appointment is needed to start pregnancy care.', s:'Please signpost the patient to self-refer to the local maternity service.'},
     covers:{l:'The self-referral form is on the maternity unit or hospital trust website; they should do this as early as possible.', s:'Self-referral form is on the maternity unit website.'},
     link:'https://www.nhs.uk/pregnancy/finding-out/finding-out-you-are-pregnant/'},
-  {id:'sexual', group:'self', label:'Sexual health clinic', safety:false, comeback:true,
+  {id:'sexual', group:'self', label:'Sexual health clinic (any area)', safety:false, comeback:true,
     main:{l:'Please signpost the patient to a sexual health clinic - open access, free and confidential, no referral needed.', s:'Please signpost the patient to a sexual health clinic (open access, free).'},
     covers:{l:'STI testing and treatment, all contraception including coils and implants, emergency contraception, PrEP and PEP.', s:'STI testing, all contraception incl. coils/implants, emergency contraception.'},
     link:'https://www.nhs.uk/nhs-services/sexual-health-services/find-a-sexual-health-clinic/'},
@@ -223,7 +223,17 @@ export const SERVICES = [
   {id:'msk', group:'local', label:'Physio self-referral (local)', safety:true, comeback:true,
     main:{l:'Please signpost the patient to self-refer to the local NHS physiotherapy (MSK) service.', s:'Please signpost the patient to self-refer to local NHS physiotherapy.'},
     covers:{l:'Self-referral is available in most areas via the service website; if not available locally, please book with our first contact physiotherapist instead.', s:'Self-refer via the service website, or book our first contact physio.'},
-    link:''}
+    link:''},
+  /* The two sexual health services covering this area. Named because in north east London these are the clinics;
+     the national 'Sexual health clinic (any area)' option above stays for patients registered elsewhere. */
+  {id:'alleast', group:'local', label:'Sexual health: All East', safety:false, comeback:true,
+    main:{l:'Please signpost the patient to All East sexual health (alleast.nhs.uk) - open access, free and confidential, no referral needed.', s:'Please signpost the patient to All East sexual health (alleast.nhs.uk).'},
+    covers:{l:'STI testing and treatment, all contraception including coils and implants, emergency contraception, PrEP and PEP. They can book online, call 020 7123 9711, or walk in.', s:'STI testing, contraception, emergency contraception, PrEP. Book online or call 020 7123 9711.'},
+    link:'https://www.alleast.nhs.uk'},
+  {id:'homerton', group:'local', label:'Sexual health: Homerton', safety:false, comeback:true,
+    main:{l:'Please signpost the patient to Homerton sexual health (homerton.nhs.uk/sexual-health) - open access, free and confidential, no referral needed.', s:'Please signpost the patient to Homerton sexual health (homerton.nhs.uk/sexual-health).'},
+    covers:{l:'STI testing and treatment, all contraception including coils and implants, PrEP and smear tests, at the Clifden Centre, the Ivy Centre and John Scott Health Centre. They can book online or walk in.', s:'STI testing, contraception incl. coils and implants, PrEP. Book online or walk in.'},
+    link:'https://www.homerton.nhs.uk/sexual-health/'}
 ];
 
 export const SERVICE_GROUPS = [
