@@ -69,6 +69,13 @@ export function StartRow({ groups, value, onChange, label = 'Start from' }) {
       }, o.l)))))));
 }
 
+/* ToggleChips({items:[{k,l}], values, onToggle}) - several independent on/off choices as chips with a tick (the guided final screen) */
+export function ToggleChips({ items, values, onToggle }) {
+  return h('div', { class: 'c-chips' },
+    items.map(t => h('button', { type: 'button', role: 'switch', 'aria-checked': String(!!values[t.k]), class: cx('c-chip', 'c-chip--toggle', values[t.k] && 'is-on'), dataset: { fid: `sw:${t.k}` }, onClick: () => onToggle(t.k) },
+      h('span', { class: 'c-chip__tick', 'aria-hidden': 'true' }), t.l)));
+}
+
 /* SwitchList({items:[{k,l}], values, onToggle}) - independent on/off rows */
 export function SwitchList({ items, values, onToggle }) {
   return h('div', { class: 'c-switches' },
@@ -83,14 +90,14 @@ export function ActionChips({ items, value, onPick, label }) {
 }
 
 /* TextInput({id, label, value, placeholder, onInput, onEnter}) - always with a visible label */
-export function TextInput({ id, label, value = '', placeholder = '', hint, onInput, onEnter }) {
+export function TextInput({ id, label, value = '', placeholder = '', hint, onInput, onEnter, labelHidden = false }) {
   const input = h('input', {
     type: 'text', id, class: 'c-input', value, placeholder, autocomplete: 'off', dataset: { fid: `in:${id}` },
     'aria-describedby': hint ? `${id}-hint` : null,
     onInput: e => onInput && onInput(e.target.value),
     onKeydown: e => { if (e.key === 'Enter' && onEnter) { e.preventDefault(); onEnter(); } }
   });
-  return h('div', { class: 'c-text' }, h('label', { class: 'c-label', for: id, text: label }), input, hint && h('span', { class: 'c-hint', id: `${id}-hint`, text: hint }));
+  return h('div', { class: 'c-text' }, h('label', { class: cx('c-label', labelHidden && 'u-visually-hidden'), for: id, text: label }), input, hint && h('span', { class: 'c-hint', id: `${id}-hint`, text: hint }));
 }
 
 /* Chunk({label, value, muted, open, onClick, id}) - one decision in the case line; a disclosure button for its editor */

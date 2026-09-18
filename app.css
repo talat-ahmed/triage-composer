@@ -56,7 +56,12 @@ table { border-collapse: collapse; width: 100%; }
 
 /* ---------- Guided stage ---------- */
 .c-stage { background: var(--color-surface); border: var(--border) solid var(--color-line); border-radius: var(--radius-2xl); box-shadow: var(--shadow-1); padding: 22px 26px 26px; display: grid; gap: var(--space-4); }
-.c-stage--in { animation: fade-in var(--dur-base) var(--ease-out); }
+.c-stage--in-fwd { animation: slide-fwd var(--dur-base) var(--ease-out); }
+.c-stage--in-back { animation: slide-back var(--dur-base) var(--ease-out); }
+@keyframes slide-fwd { from { opacity: 0; transform: translateX(var(--slide)); } to { opacity: 1; transform: none; } }
+@keyframes slide-back { from { opacity: 0; transform: translateX(calc(-1 * var(--slide))); } to { opacity: 1; transform: none; } }
+.c-stage .c-chip { padding: 9px 14px; }
+.c-stage .c-input { max-width: none; padding: 10px var(--space-3); font-size: var(--text-lg); }
 .c-progress { appearance: none; -webkit-appearance: none; display: block; width: 100%; height: var(--meter-h); border: 0; background: var(--color-surface-2); border-radius: 2px; overflow: hidden; color: var(--color-accent); }
 .c-progress::-webkit-progress-bar { background: var(--color-surface-2); }
 .c-progress::-webkit-progress-value { background: var(--color-accent); transition: width var(--dur-slow) var(--ease-out); }
@@ -172,6 +177,10 @@ table { border-collapse: collapse; width: 100%; }
 .c-chip:hover { border-color: var(--color-line-strong); background: var(--color-surface-3); }
 .c-chip.is-on { background: var(--color-accent-soft); border-color: var(--color-accent); color: var(--color-accent); font-weight: 600; }
 .c-chip--sm { font-size: var(--text-base); min-height: var(--target-min); padding: 4px 12px; }
+.c-chip--toggle:not(.is-on) { color: var(--color-text-muted); }
+.c-chip__tick { width: var(--tick); height: var(--tick); border-radius: 50%; border: 1.5px solid var(--color-line-strong); display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); line-height: 1; flex: none; transition: background var(--dur-fast), border-color var(--dur-fast); }
+.c-chip.is-on .c-chip__tick { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
+.c-chip.is-on .c-chip__tick::after { content: "\2713"; }
 .c-chip__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-line-strong); flex: none; }
 .c-chip.t-crit .c-chip__dot { background: var(--color-crit); }
 .c-chip.t-warn .c-chip__dot { background: var(--color-warn); }

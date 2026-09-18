@@ -6,7 +6,7 @@
 import { DEFAULT_SETTINGS, PRESETS, CAPACITY, TEXT_FOR } from './data.js';
 import { compose, defaultState, applyChange, dayOk, effFb, effDayFb, todayKey, capacityPhrase } from './compose.js';
 import { caseChunks, caseLabel, presetGroups, guidedSteps } from './summary.js';
-import { h, replaceChildren, Button, ChipGroup, StartRow, SwitchList, ActionChips, TextInput, Chunk, Editor, Group, Segmented, OptionList, Progress, Pill } from './components.js';
+import { h, replaceChildren, Button, ChipGroup, StartRow, SwitchList, ToggleChips, ActionChips, TextInput, Chunk, Editor, Group, Segmented, OptionList, Progress, Pill } from './components.js';
 
 /* ---------- Settings (per device) ---------- */
 const STORAGE_KEY = 'ktc.settings';
@@ -29,6 +29,7 @@ let booted = false;        /* announcements start after the first paint */
 let mode = S.mode === 'quick' ? 'quick' : 'guided';
 let answered = new Set();  /* guided: step ids already answered */
 let lastStage = null;      /* guided: the stage last rendered, so a re-render of the same screen does not re-animate */
+let navDir = 'fwd';        /* guided: slide direction for the next screen */
 let lastPick = null;       /* guided: { t, x, y } of the last option pick, to ignore a double-tap on the same spot */
 const DOUBLE_TAP_MS = 350, DOUBLE_TAP_PX = 24;
 
@@ -107,7 +108,7 @@ function applyRecent(i) {
 function setOutcome(id) { st = defaultState(id, S); preset = null; answered = new Set(['outcome']); }
 function choose(key, value, e) {
   if (key === 'outcome') setOutcome(value); else { applyChange(st, key, value, S); preset = null; }
-  if (mode === 'guided') { if (TEXT_FOR[key] !== value) answered.add(stepIdFor(key)); render(); return; }
+  if (mode === 'guided') { if (TEXT_FOR[key] !== value) { answered.add(stepIdFor(key)); navDir = 'fwd'; } render(); return; }
   /* Quick: a mouse pick closes the editor and the case line becomes the confirmation; keyboard picks keep it open so arrows can move on. */
   if (e && e.detail > 0 && TEXT_FOR[key] !== value) closeEditor(); else render();
 }
@@ -124,7 +125,7 @@ const stepIdFor = key => ({ namedCustom: 'named', personCustom: 'person' }[key] 
 function setMode(m) {
   if (m === mode) return;
   mode = m; S.mode = m; saveSettings();
-  if (m === 'guided') { st = defaultState('book', S); preset = null; answered = new Set(); lastStage = null; openChunk = null; }
+  if (m === 'guided') { st = defaultState('book', S); preset = null; answered = new Set(); lastStage = null; navDir = 'fwd'; openChunk = null; }
   focusNext = `seg:${m}`;
   render();
   announce(m === 'guided' ? 'Guided: one question at a time.' : 'Quick: start from a preset and adjust the case line.');
@@ -132,7 +133,7 @@ function setMode(m) {
 function openEditor(id) { openChunk = openChunk === id ? null : id; focusNext = openChunk ? 'editor' : `chunk:${id}`; render(); }
 function closeEditor() { const id = openChunk; openChunk = null; focusNext = id ? `chunk:${id}` : null; render(); }
 function newCase() {
-  if (mode === 'guided') { st = defaultState('book', S); preset = null; answered = new Set(); lastStage = null; render(); return; }
+  if (mode === 'guided') { st = defaultState('book', S); preset = null; answered = new Set(); lastStage = null; navDir = 'fwd'; render(); return; }
   focusNext = 'start:0'; applyPreset(0);
 }
 
@@ -242,7 +243,7 @@ function isDoubleTap(e) {
 function pickOption(key, v, e) { if (isDoubleTap(e)) return; choose(key, v, e); }
 function stageBody(s) {
   const c = s.chunk;
-  const done = () => { answered.add(s.id); render(); };
+  const done = () => { answered.add(s.id); navDir = 'fwd'; render(); };
   const actions = (label, optional) => h('div', { class: 'c-stage__actions' }, Button({ label, onClick: done, dataset: { fid: 'stage:next' } }), optional && Button({ label: 'Skip', variant: 'link', onClick: done }));
   const text = (key, label, ph) => TextInput({ id: `g-${key}`, value: st[key], placeholder: ph, label, onInput: v => setText(key, v), onEnter: done });
   const pick = (key, opts) => OptionList({ options: opts, value: st[key], onSelect: (v, e) => pickOption(key, v, e), label: s.q, fid: key });
@@ -251,9 +252,9 @@ function stageBody(s) {
     const fb = s.chunks.find(x => x.id === 'fb'), opts = s.chunks.find(x => x.id === 'opts');
     return [
       fb && Group({ label: "If they can't attend the slot" }, ChipGroup({ options: fb.opts, value: effFb(st), onChange: v => { applyChange(st, 'fb', v, S); preset = null; render(); }, label: 'If they cannot attend', fid: 'fb' })),
-      opts && Group({ label: 'Include' }, SwitchList({ items: opts.togs.map(t => ({ k: t.k, l: t.l })), values: st, onToggle: toggle })),
+      opts && Group({ label: 'Include' }, ToggleChips({ items: opts.togs.map(t => ({ k: t.k, l: t.c || t.l })), values: st, onToggle: toggle })),
       opts && opts.hint && h('p', { class: 'c-hint', text: opts.hint }),
-      Group({ label: 'Booking notes' }, notesControls('g-notes')),
+      Group({ label: 'Booking notes' }, notesControls('g-notes', true)),
       h('div', { class: 'c-stage__actions' }, Button({ label: 'Show message →', onClick: done, dataset: { fid: 'stage:next' } }))
     ];
   }
@@ -268,11 +269,11 @@ function stageBody(s) {
     default: return [];
   }
 }
-function notesControls(id) {
+function notesControls(id, labelHidden = false) {
   const shortcuts = noteShortcuts();
   return [
     shortcuts.length > 0 && ActionChips({ items: shortcuts, value: st.notes.trim(), label: 'Note shortcuts', onPick: n => { st.notes = st.notes.trim() === n ? '' : n; preset = null; render(); } }),
-    TextInput({ id, value: st.notes, placeholder: 'Anything the team needs to know when booking', label: 'Booking notes (optional, go just above the sign-off)', onInput: v => { st.notes = v; preset = null; if (mode === 'quick') renderChunksOnly(); syncActionChips(v); updateMessage(); } })
+    TextInput({ id, labelHidden, value: st.notes, placeholder: 'Optional: anything the team needs to know when booking', label: 'Booking notes (optional, go just above the sign-off)', onInput: v => { st.notes = v; preset = null; if (mode === 'quick') renderChunksOnly(); syncActionChips(v); updateMessage(); } })
   ];
 }
 function renderGuided() {
@@ -282,19 +283,21 @@ function renderGuided() {
   const total = steps.length;
   const stageId = cur ? cur.id : '__message';
   const fresh = stageId !== lastStage; lastStage = stageId;
+  const anim = fresh ? ` c-stage--in-${navDir}` : '';
   const back = (cur && idx === 0) ? null : Button({ label: 'Back', variant: 'link', dataset: { fid: 'stage:back' }, onClick: goBack });
   let stage;
   if (cur) {
-    stage = h('div', { class: `c-stage${fresh ? ' c-stage--in' : ''}` },
+    stage = h('div', { class: `c-stage${anim}` },
       Progress({ value: idx, max: total, label: `Question ${idx + 1} of ${total}` }),
       h('div', { class: 'c-stage__meta' }, h('span', { text: `Question ${idx + 1} of ${total}` }), back),
       h('h2', { class: 'c-stage__q', id: 'stage-q', tabindex: '-1', dataset: { fid: 'stage:q' }, text: cur.q }),
       cur.sub && h('p', { class: 'c-stage__sub', text: cur.sub }),
       stageBody(cur));
   } else {
-    const chunks = caseChunks(st, S);
-    const pills = chunks.map(c => Pill({ id: c.id, label: c.label, value: c.value, onClick: () => reopen(['fb', 'opts', 'notes'].includes(c.id) ? 'opts' : c.id) }));
-    stage = h('div', { class: `c-stage${fresh ? ' c-stage--in' : ''}` },
+    /* One pill per question answered, one for the options screen, and notes only when there are any */
+    const pills = steps.map(x => Pill({ id: x.id, label: x.kind === 'final' ? 'Options' : x.chunk.label, value: x.kind === 'final' ? x.ans : x.chunk.value, onClick: () => reopen(x.id) }));
+    if (st.notes.trim()) pills.push(Pill({ id: 'notes', label: 'Notes', value: st.notes.trim(), onClick: () => reopen('opts') }));
+    stage = h('div', { class: `c-stage${anim}` },
       Progress({ value: total, max: total, label: 'All questions answered' }),
       h('div', { class: 'c-banner', id: 'copied', hidden: true }, h('span', { text: 'Copied. Paste it into Klinik, then:' }), Button({ label: 'Next case →', onClick: newCase })),
       h('div', { class: 'c-stage__meta' }, h('span', { text: 'Your message' }), back),
@@ -319,9 +322,9 @@ function goBack() {
   const steps = guidedSteps(st, S);
   let idx = steps.findIndex(x => !answered.has(x.id)); if (idx < 0) idx = steps.length;
   for (let i = idx - 1; i >= 0; i--) { if (answered.has(steps[i].id)) { answered.delete(steps[i].id); break; } }
-  render();
+  navDir = 'back'; render();
 }
-function reopen(id) { answered.delete(id); render(); }
+function reopen(id) { answered.delete(id); navDir = 'back'; render(); }
 
 /* ---------- Focus: put the keyboard back where it was after a re-render ---------- */
 function restoreFocus() {

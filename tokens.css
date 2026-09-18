@@ -78,6 +78,7 @@
   --dur-base: 240ms;
   --dur-slow: 350ms;
   --ease-out: cubic-bezier(.2, .7, .2, 1);
+  --slide: 26px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -124,5 +125,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --dur-fast: 0ms; --dur-base: 0ms; --dur-slow: 0ms; }
+  :root { --dur-fast: 0ms; --dur-base: 0ms; --dur-slow: 0ms; --slide: 0px; }
 }

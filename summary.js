@@ -122,7 +122,7 @@ export const presetGroups = (only) => {
 /* ---------- Guided mode: one question per screen, driven by the same chunks ---------- */
 /* Question wording per chunk id. optional: the learner may skip it (Next / Skip shown when it has free text). */
 export const QUESTIONS = {
-  outcome: { q: 'What should happen with this case?' },
+  outcome: { q: 'What should happen with this case?', sub: '' },
   who: { q: 'Who should the patient see?' },
   named: { q: 'Which doctor or ANP?' },
   person: { q: 'Anyone in particular?', optional: true },
@@ -147,7 +147,7 @@ export const FINAL_IDS = ['fb', 'opts', 'notes'];
    Each step carries its chunk, so the renderer needs nothing else. */
 export function guidedSteps(st, S) {
   const chunks = caseChunks(st, S);
-  const steps = chunks.filter(c => !FINAL_IDS.includes(c.id)).map(c => ({ id: c.id, q: (QUESTIONS[c.id] || {}).q || c.label, sub: (QUESTIONS[c.id] || {}).sub || c.hint, optional: !!(QUESTIONS[c.id] || {}).optional, chunk: c }));
+  const steps = chunks.filter(c => !FINAL_IDS.includes(c.id)).map(c => { const Q = QUESTIONS[c.id] || {}; return { id: c.id, q: Q.q || c.label, sub: 'sub' in Q ? Q.sub : c.hint, optional: !!Q.optional, chunk: c }; });
   const finals = chunks.filter(c => FINAL_IDS.includes(c.id));
   const parts = finals.filter(c => !c.muted && c.id !== 'notes').map(c => c.value);
   steps.push({ id: 'opts', q: 'Anything else for the team?', sub: 'Defaults are already applied. Tap anything to change it.', kind: 'final', chunks: finals, ans: parts.join(' · ') || 'Defaults' });
